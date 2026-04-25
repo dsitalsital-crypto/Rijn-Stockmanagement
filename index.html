@@ -166,7 +166,6 @@ function render(){
 }
 
 function renderContent(){
-  // Re-render only the table content without losing focus on search input
   const searchVal=S.search;
   render();
   const sr=g('srch');
@@ -174,6 +173,17 @@ function renderContent(){
     sr.focus();
     sr.value=searchVal;
     sr.setSelectionRange(searchVal.length,searchVal.length);
+  }
+}
+
+function renderProductContent(){
+  const searchVal=S.productSearch||'';
+  render();
+  const psr=g('psrch');
+  if(psr){
+    psr.focus();
+    psr.value=searchVal;
+    psr.setSelectionRange(searchVal.length,searchVal.length);
   }
 }
 
@@ -332,7 +342,7 @@ function bStores(){
   <div class="tw"><table>
     <colgroup><col style="width:200px"><col style="width:140px"><col style="width:80px"><col style="width:80px"><col style="width:100px"></colgroup>
     <thead><tr><th>${l.name}</th><th>${l.city}</th><th>${l.totalUnits}</th><th>${l.products}</th><th></th></tr></thead>
-    <tbody>${S.stores.map(s=>`<tr>
+    <tbody>${[...S.stores].sort((a,b)=>a.id-b.id).map(s=>`<tr>
       <td style="font-weight:500">${s.name}</td><td style="color:var(--t2)">${s.city}</td>
       <td>${storeTotal(s.id)}</td><td>${storeItems(s.id)}</td>
       <td><button class="btn bd bsm dstore" data-id="${s.id}">${l.remove}</button></td>
@@ -342,17 +352,26 @@ function bStores(){
 
 function bProducts(){
   const l=t();
+  const sorted=[...S.products].sort((a,b)=>a.name.localeCompare(b.name));
+  const psearch=S.productSearch||'';
+  const filtered=sorted.filter(p=>!psearch||p.name.toLowerCase().includes(psearch.toLowerCase())||p.sku.toLowerCase().includes(psearch.toLowerCase())||p.category.toLowerCase().includes(psearch.toLowerCase()));
   return`<div class="panel">
-  <div class="ph"><span class="pht">${l.products}</span><button class="btn bp bsm" id="add-prod-btn">${l.addProduct}</button></div>
+  <div class="ph"><span class="pht">${l.products}</span>
+    <div style="display:flex;gap:7px;align-items:center">
+      <input type="text" id="psrch" placeholder="${l.search}" value="${psearch}" style="width:160px;height:30px;font-size:12px">
+      <button class="btn bp bsm" id="add-prod-btn">${l.addProduct}</button>
+    </div>
+  </div>
   <div class="tw"><table>
-    <colgroup><col style="width:170px"><col style="width:80px"><col style="width:110px"><col style="width:65px"><col style="width:65px"><col style="width:68px"><col style="width:90px"></colgroup>
+    <colgroup><col style="width:170px"><col style="width:80px"><col style="width:110px"><col style="width:65px"><col style="width:65px"><col style="width:68px"><col style="width:100px"></colgroup>
     <thead><tr><th>${l.name}</th><th>${l.sku}</th><th>${l.category}</th><th>${l.size}</th><th>${l.min}</th><th>${l.total}</th><th></th></tr></thead>
-    <tbody>${S.products.map(p=>`<tr>
+    <tbody>${filtered.length?filtered.map(p=>`<tr>
       <td style="font-weight:500">${p.name}</td><td style="color:var(--t2)">${p.sku}</td>
       <td>${p.category}</td><td>${p.size}</td><td>${p.min_stock}</td>
       <td>${S.stores.reduce((a,s)=>a+qty(s.id,p.id),0)}</td>
       <td style="display:flex;gap:4px"><button class="btn bsm eprod" data-id="${p.id}">${l.edit}</button><button class="btn bd bsm dprod" data-id="${p.id}">${l.remove}</button></td>
-    </tr>`).join('')}</tbody>
+    </tr>`).join(''):`<tr><td colspan="7" style="text-align:center;padding:1.5rem;color:var(--t3)">${l.noProducts}</td></tr>`}
+    </tbody>
   </table></div>
 </div>`}
 
@@ -490,6 +509,7 @@ function bind(){
   const rb=g('refresh-btn');if(rb)rb.addEventListener('click',()=>loadAll());
   document.querySelectorAll('[data-sub]').forEach(el=>el.addEventListener('click',()=>{S.adminSubTab=el.dataset.sub;render()}));
   const sr=g('srch');if(sr)sr.addEventListener('input',e=>{S.search=e.target.value;renderContent();});
+  const psr=g('psrch');if(psr)psr.addEventListener('input',e=>{S.productSearch=e.target.value;renderProductContent();});
   const fs=g('fstore');if(fs)fs.addEventListener('change',e=>{S.filterStore=e.target.value;renderContent();});
   const fst=g('fstatus');if(fst)fst.addEventListener('change',e=>{S.filterStatus=e.target.value;renderContent();});
 
