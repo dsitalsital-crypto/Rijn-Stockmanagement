@@ -118,13 +118,14 @@ async function api(path,opts={}){
 async function loadAll(){
   S.loading=true;render();
   try{
-    const[stores,products,stockRows,orders,orderItems,accounts]=await Promise.all([
+    const[stores,products,stockRows,orders,orderItems,accounts,messages]=await Promise.all([
       api('stores?order=id'),
       api('products?order=id'),
       api('stock?select=*'),
       api('orders?order=id.desc'),
       api('order_items?select=*'),
       api('accounts?order=username'),
+      api('messages?order=created_at'),
     ]);
     S.stores=stores||[];
     S.products=products||[];
@@ -133,6 +134,7 @@ async function loadAll(){
     S.orders=orders||[];
     S.orderItems=orderItems||[];
     S.accounts=accounts||[];
+    S.messages=messages||[];
   }catch(e){showToast('❌ '+e.message,'err')}
   S.loading=false;render();
 }
@@ -217,7 +219,7 @@ function buildLogin(){const l=t();return`<div class="lcwrap"><div class="lcbox">
 function buildApp(){return S.session.role==='admin'?buildAdmin():buildStoreView()}
 
 function buildAdmin(){
-  const l=t(),sub=S.adminSubTab,al=allLow()+allOut(),or=openReqs();
+  const l=t(),sub=S.adminSubTab,al=allLow()+allOut(),or=openReqs(),unreadCount=(S.messages||[]).filter(m=>!m.is_read&&m.from_account!=='admin').length;
   return`<div>
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem;flex-wrap:wrap;gap:10px">
     <div style="display:flex;align-items:center;gap:12px">
@@ -246,8 +248,26 @@ function buildAdmin(){
     <button class="tab ${sub==='stores'?'on':''}" data-sub="stores">${l.stores}</button>
     <button class="tab ${sub==='products'?'on':''}" data-sub="products">${l.products}</button>
     <button class="tab ${sub==='accounts'?'on':''}" data-sub="accounts">${l.accounts}</button>
+    <button class="tab ${sub==='chat'?'on':''}" data-sub="chat">💬 Chat${unreadCount>0?` <span style="background:#D4537E;color:#fff;border-radius:10px;padding:0 5px;font-size:10px;margin-left:3px">${unreadCount}</span>`:''}</button>
   </div>
-  ${sub==='stock'?bStock():sub==='alerts'?bAlerts():sub==='requests'?bRequests():sub==='stores'?bStores():sub==='products'?bProducts():bAccounts()}
+  ${sub==='stock'?bStock():sub==='alerts'?bAlerts():sub==='requests'?bRequests():sub==='stores'?bStores():sub==='products'?bProducts():sub==='chat'?bChat():bAccounts()}
+  ${S.storeChatOpen?`
+  <div class="panel" style="position:fixed;bottom:1.5rem;right:1.5rem;width:340px;max-width:95vw;z-index:998;display:flex;flex-direction:column;max-height:480px">
+    <div class="ph"><span class="pht">💬 Chat met Admin</span><button class="btn bsm" id="close-chat-btn">✕</button></div>
+    <div id="chat-messages" style="flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px;max-height:320px">
+      ${(S.messages||[]).filter(m=>m.to_store_id===acc.store_id).map(m=>{
+        const isMe=m.from_account!=='admin';
+        return`<div style="display:flex;flex-direction:column;align-items:${isMe?'flex-end':'flex-start'}">
+          <div style="background:${isMe?'#D4537E':'var(--bg2)'};color:${isMe?'#fff':'var(--t1)'};padding:7px 11px;border-radius:12px;font-size:12px;max-width:80%">${m.message}</div>
+          <div style="font-size:10px;color:var(--t3);margin-top:2px">${isMe?'Jij':'Admin'} · ${m.created_at?new Date(m.created_at).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'}):''}</div>
+        </div>`;
+      }).join('')||'<div style="text-align:center;color:var(--t3);font-size:12px;padding:1rem">Nog geen berichten</div>'}
+    </div>
+    <div style="padding:10px;border-top:0.5px solid var(--b3);display:flex;gap:7px">
+      <input type="text" id="chat-input" placeholder="Typ een bericht..." style="flex:1;height:32px;font-size:12px">
+      <button class="btn bp bsm" id="send-chat-btn">Stuur</button>
+    </div>
+  </div>`:''}
   ${S.modal?buildModal():''}
 </div>`}
 
@@ -340,6 +360,41 @@ function bRequests(){
   </table></div>
 </div>`}
 
+function bChat(){
+  const l=t();
+  const chatStore=S.chatStore||S.stores[0]?.id;
+  const store=S.stores.find(s=>s.id===chatStore);
+  const msgs=(S.messages||[]).filter(m=>m.to_store_id===chatStore).sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
+  return`<div style="display:grid;grid-template-columns:200px 1fr;gap:10px;height:480px">
+    <div class="panel" style="overflow-y:auto">
+      <div class="ph"><span class="pht" style="font-size:12px">Winkels</span></div>
+      ${S.stores.map(s=>{
+        const unread=(S.messages||[]).filter(m=>m.to_store_id===s.id&&m.from_account!=='admin'&&!m.is_read).length;
+        return`<div style="padding:8px 12px;cursor:pointer;background:${s.id===chatStore?'var(--bg2)':'transparent'};border-bottom:0.5px solid var(--b3);font-size:12px;display:flex;justify-content:space-between;align-items:center" class="chat-store-btn" data-sid="${s.id}">
+          <span style="font-weight:${s.id===chatStore?'500':'400'}">${s.name}</span>
+          ${unread?`<span style="background:#D4537E;color:#fff;border-radius:10px;padding:0 5px;font-size:10px">${unread}</span>`:''}
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="panel" style="display:flex;flex-direction:column">
+      <div class="ph"><span class="pht">💬 ${store?store.name:'—'}</span></div>
+      <div id="chat-messages" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px">
+        ${msgs.length?msgs.map(m=>{
+          const isAdmin=m.from_account==='admin';
+          return`<div style="display:flex;flex-direction:column;align-items:${isAdmin?'flex-end':'flex-start'}">
+            <div style="background:${isAdmin?'#D4537E':'var(--bg2)'};color:${isAdmin?'#fff':'var(--t1)'};padding:7px 11px;border-radius:12px;font-size:12px;max-width:75%">${m.message}</div>
+            <div style="font-size:10px;color:var(--t3);margin-top:2px">${isAdmin?'Admin':store?.name||''} · ${m.created_at?new Date(m.created_at).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'}):''}</div>
+          </div>`;
+        }).join(''):`<div style="text-align:center;color:var(--t3);font-size:13px;padding:2rem">Nog geen berichten met ${store?.name||'deze winkel'}</div>`}
+      </div>
+      <div style="padding:10px;border-top:0.5px solid var(--b3);display:flex;gap:7px">
+        <input type="text" id="chat-input" placeholder="Typ een bericht naar ${store?.name||''}..." style="flex:1;height:34px;font-size:12px">
+        <button class="btn bp bsm" id="send-chat-btn">Stuur</button>
+      </div>
+    </div>
+  </div>`
+}
+
 function bStores(){
   const l=t();
   return`<div class="panel">
@@ -397,7 +452,7 @@ function bAccounts(){
 </div>`}
 
 function buildStoreView(){
-  const l=t(),acc=S.session,store=S.stores.find(s=>s.id===acc.store_id);
+  const l=t(),acc=S.session,store=S.stores.find(s=>s.id===acc.store_id),storeUnread=(S.messages||[]).filter(m=>m.to_store_id===acc.store_id&&m.from_account==='admin'&&!m.is_read).length;
   const myOrders=(S.orders||[]).filter(o=>o.store_id===acc.store_id);
   const maxQ=Math.max(1,...S.products.map(p=>qty(acc.store_id,p.id)));
   return`<div>
@@ -409,7 +464,7 @@ function buildStoreView(){
         <div style="font-size:12px;color:var(--t2)">${l.storeOnly}</div>
       </div>
     </div>
-    <div style="display:flex;gap:8px;align-items:center">${langBar()}<button class="btn bsm" id="refresh-btn" title="Ververs">↻</button><button class="btn bsm" id="logout-btn">${l.signOut}</button></div>
+    <div style="display:flex;gap:8px;align-items:center">${langBar()}<button class="btn bsm" id="refresh-btn" title="Ververs">↻</button><button class="btn bsm ${S.storeChatOpen?'bp':''}" id="chat-toggle-btn">💬 Chat${storeUnread>0?` <span style="background:#fff;color:#D4537E;border-radius:10px;padding:0 5px;font-size:10px">${storeUnread}</span>`:''}</button><button class="btn bsm" id="logout-btn">${l.signOut}</button></div>
   </div>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:1.1rem">
     <div class="met"><div class="met-l">${l.totalUnits}</div><div class="met-v">${storeTotal(acc.store_id)}</div></div>
@@ -452,6 +507,23 @@ function buildStoreView(){
       </tbody>
     </table></div>
   </div>
+  ${S.storeChatOpen?`
+  <div class="panel" style="position:fixed;bottom:1.5rem;right:1.5rem;width:340px;max-width:95vw;z-index:998;display:flex;flex-direction:column;max-height:480px">
+    <div class="ph"><span class="pht">💬 Chat met Admin</span><button class="btn bsm" id="close-chat-btn">✕</button></div>
+    <div id="chat-messages" style="flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px;max-height:320px">
+      ${(S.messages||[]).filter(m=>m.to_store_id===acc.store_id).map(m=>{
+        const isMe=m.from_account!=='admin';
+        return`<div style="display:flex;flex-direction:column;align-items:${isMe?'flex-end':'flex-start'}">
+          <div style="background:${isMe?'#D4537E':'var(--bg2)'};color:${isMe?'#fff':'var(--t1)'};padding:7px 11px;border-radius:12px;font-size:12px;max-width:80%">${m.message}</div>
+          <div style="font-size:10px;color:var(--t3);margin-top:2px">${isMe?'Jij':'Admin'} · ${m.created_at?new Date(m.created_at).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'}):''}</div>
+        </div>`;
+      }).join('')||'<div style="text-align:center;color:var(--t3);font-size:12px;padding:1rem">Nog geen berichten</div>'}
+    </div>
+    <div style="padding:10px;border-top:0.5px solid var(--b3);display:flex;gap:7px">
+      <input type="text" id="chat-input" placeholder="Typ een bericht..." style="flex:1;height:32px;font-size:12px">
+      <button class="btn bp bsm" id="send-chat-btn">Stuur</button>
+    </div>
+  </div>`:''}
   ${S.modal?buildModal():''}
 </div>`}
 
@@ -527,6 +599,63 @@ function bind(){
   }));
   const lo=g('logout-btn');if(lo)lo.addEventListener('click',()=>{S.session=null;S.modal=null;render()});
   const rb=g('refresh-btn');if(rb)rb.addEventListener('click',()=>loadAll());
+
+  // Chat toggle (store)
+  const ctb=g('chat-toggle-btn');if(ctb)ctb.addEventListener('click',async()=>{
+    S.storeChatOpen=!S.storeChatOpen;
+    if(S.storeChatOpen){
+      // mark messages as read
+      const unread=(S.messages||[]).filter(m=>m.to_store_id===S.session.store_id&&m.from_account==='admin'&&!m.is_read);
+      for(const m of unread){
+        await api(`messages?id=eq.${m.id}`,{method:'PATCH',body:JSON.stringify({is_read:true})});
+        m.is_read=true;
+      }
+    }
+    render();
+    setTimeout(()=>{const el=g('chat-messages');if(el)el.scrollTop=el.scrollHeight;},50);
+  });
+  const ccb=g('close-chat-btn');if(ccb)ccb.addEventListener('click',()=>{S.storeChatOpen=false;render()});
+
+  // Send message (store)
+  const scb=g('send-chat-btn');if(scb)scb.addEventListener('click',async()=>{
+    const inp=g('chat-input');if(!inp||!inp.value.trim())return;
+    const msg=inp.value.trim();inp.value='';
+    try{
+      const[nm]=await api('messages',{method:'POST',body:JSON.stringify({from_account:S.session.id,to_store_id:S.session.store_id,message:msg,is_read:false})});
+      (S.messages=S.messages||[]).push(nm);render();
+      setTimeout(()=>{const el=g('chat-messages');if(el)el.scrollTop=el.scrollHeight;},50);
+    }catch(e){showToast('❌ '+t().errSave,'err')}
+  });
+
+  // Chat store select (admin)
+  document.querySelectorAll('.chat-store-btn').forEach(el=>el.addEventListener('click',async()=>{
+    S.chatStore=parseInt(el.dataset.sid);
+    // mark messages as read
+    const unread=(S.messages||[]).filter(m=>m.to_store_id===S.chatStore&&m.from_account!=='admin'&&!m.is_read);
+    for(const m of unread){
+      await api(`messages?id=eq.${m.id}`,{method:'PATCH',body:JSON.stringify({is_read:true})});
+      m.is_read=true;
+    }
+    render();
+    setTimeout(()=>{const el=g('chat-messages');if(el)el.scrollTop=el.scrollHeight;},50);
+  }));
+
+  // Send message (admin)
+  const ascb=g('send-chat-btn');
+  if(ascb&&S.session?.role==='admin')ascb.addEventListener('click',async()=>{
+    const inp=g('chat-input');if(!inp||!inp.value.trim())return;
+    const msg=inp.value.trim();inp.value='';
+    const sid=S.chatStore||S.stores[0]?.id;
+    try{
+      const[nm]=await api('messages',{method:'POST',body:JSON.stringify({from_account:'admin',to_store_id:sid,message:msg,is_read:false})});
+      (S.messages=S.messages||[]).push(nm);render();
+      setTimeout(()=>{const el=g('chat-messages');if(el)el.scrollTop=el.scrollHeight;},50);
+    }catch(e){showToast('❌ '+t().errSave,'err')}
+  });
+
+  // Enter key for chat
+  const cinp=g('chat-input');
+  if(cinp)cinp.addEventListener('keydown',e=>{if(e.key==='Enter'){const btn=g('send-chat-btn');if(btn)btn.click()}});
   document.querySelectorAll('[data-sub]').forEach(el=>el.addEventListener('click',()=>{S.adminSubTab=el.dataset.sub;render()}));
   const sr=g('srch');if(sr)sr.addEventListener('input',e=>{S.search=e.target.value;renderContent();});
   const psr=g('psrch');if(psr)psr.addEventListener('input',e=>{S.productSearch=e.target.value;renderProductContent();});
