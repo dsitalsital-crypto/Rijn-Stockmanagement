@@ -475,10 +475,20 @@ function buildModal(){
     const isStore=S.session.role==='store';
     const sf=isStore?`<input type="hidden" id="m-store" value="${S.session.store_id}">`
       :`<div class="fr"><label>${l.store}</label><select id="m-store">${S.stores.map(s=>`<option value="${s.id}" ${m.storeId==s.id?'selected':''}>${s.name}</option>`).join('')}</select></div>`;
+    const rows=m.rows||[{productId:m.productId||S.products[0]?.id,qty:m.qty||20}];
     inner=`<h3>${l.requestStock}</h3>
     ${sf}
-    <div class="fr"><label>${l.product}</label><select id="m-product">${S.products.map(p=>`<option value="${p.id}" ${m.productId==p.id?'selected':''}>${p.name} (${p.sku})</option>`).join('')}</select></div>
-    <div class="fr"><label>${l.qty}</label><input type="number" id="m-qty" value="${m.qty||20}" min="1"></div>
+    <div id="req-rows">${rows.map((r,i)=>`
+      <div class="req-row" style="display:flex;gap:6px;align-items:flex-end;margin-bottom:8px">
+        <div style="flex:1"><label style="display:block;font-size:11px;color:var(--t2);margin-bottom:3px">${l.product}</label>
+          <select class="rp-product" data-i="${i}">${S.products.map(p=>`<option value="${p.id}" ${r.productId==p.id?'selected':''}>${p.name} (${p.sku})</option>`).join('')}</select>
+        </div>
+        <div style="width:80px"><label style="display:block;font-size:11px;color:var(--t2);margin-bottom:3px">${l.qty}</label>
+          <input type="number" class="rp-qty" data-i="${i}" value="${r.qty}" min="1" style="width:80px">
+        </div>
+        ${rows.length>1?`<button class="btn bd bsm rm-row" data-i="${i}" style="margin-bottom:1px">✕</button>`:''}
+      </div>`).join('')}</div>
+    <button class="btn bsm" id="add-row-btn" style="margin-bottom:10px">+ ${l.addProduct}</button>
     <div class="fr"><label>${l.note}</label><textarea id="m-note"></textarea></div>
     <div class="fa"><button class="btn" id="mc">${l.cancel}</button><button class="btn bp" id="srq">${l.submit}</button></div>`;}
   else if(m.type==='add-account'){inner=`<h3>${l.addAccountName}</h3>
@@ -520,7 +530,7 @@ function bind(){
   }));
   document.querySelectorAll('.rlk').forEach(el=>el.addEventListener('click',()=>{
     const[sid,pid]=el.dataset.req.split('-').map(Number);
-    S.modal={type:'req-prefill',storeId:sid,productId:pid,qty:S.products.find(x=>x.id===pid)?.min_stock||20};render();
+    S.modal={type:'req-prefill',storeId:sid,rows:[{productId:pid,qty:Math.max(1,S.products.find(x=>x.id===pid)?.min_stock||20)}]};render();
   }));
   document.querySelectorAll('.msent').forEach(el=>el.addEventListener('click',()=>updateReqStatus(parseInt(el.dataset.id),'sent')));
   document.querySelectorAll('.mdone').forEach(el=>el.addEventListener('click',()=>updateReqStatus(parseInt(el.dataset.id),'done')));
@@ -533,8 +543,8 @@ function bind(){
   document.querySelectorAll('.dprod').forEach(el=>el.addEventListener('click',()=>deleteProduct(parseInt(el.dataset.id))));
   document.querySelectorAll('.dacc').forEach(el=>el.addEventListener('click',()=>deleteAccount(el.dataset.id)));
 
-  const arb=g('add-req-btn');if(arb)arb.addEventListener('click',()=>{S.modal={type:'add-request',storeId:S.stores[0]?.id,productId:S.products[0]?.id,qty:20};render()});
-  const srb=g('store-req-btn');if(srb)srb.addEventListener('click',()=>{S.modal={type:'req-prefill',storeId:S.session.store_id,productId:S.products[0]?.id,qty:20};render()});
+  const arb=g('add-req-btn');if(arb)arb.addEventListener('click',()=>{S.modal={type:'add-request',storeId:S.stores[0]?.id,rows:[{productId:S.products[0]?.id,qty:20}]};render()});
+  const srb=g('store-req-btn');if(srb)srb.addEventListener('click',()=>{S.modal={type:'req-prefill',storeId:S.session.store_id,rows:[{productId:S.products[0]?.id,qty:20}]};render()});
   const asb=g('add-store-btn');if(asb)asb.addEventListener('click',()=>{S.modal={type:'add-store'};render()});
   const apb=g('add-prod-btn');if(apb)apb.addEventListener('click',()=>{S.modal={type:'add-product'};render()});
   const aab=g('add-acc-btn');if(aab)aab.addEventListener('click',()=>{S.modal={type:'add-account'};render()});
@@ -591,14 +601,33 @@ function bindModal(){
     }catch(e){showToast('❌ '+t().errSave,'err')}
   });
 
+  const arb2=g('add-row-btn');if(arb2)arb2.addEventListener('click',()=>{
+    const rows=S.modal.rows||[{productId:S.products[0]?.id,qty:20}];
+    S.modal.rows=[...rows,{productId:S.products[0]?.id,qty:20}];
+    render();bindModal();
+  });
+  document.querySelectorAll('.rm-row').forEach(el=>el.addEventListener('click',()=>{
+    const i=parseInt(el.dataset.i);
+    S.modal.rows=S.modal.rows.filter((_,idx)=>idx!==i);
+    render();bindModal();
+  }));
   const srq=g('srq');if(srq)srq.addEventListener('click',async()=>{
-    const sid=parseInt(g('m-store').value),pid=parseInt(g('m-product').value),qty2=parseInt(gv('m-qty'))||1,note=gv('m-note');
+    const sid=parseInt(g('m-store').value);
+    const note=gv('m-note');
+    const rows=[...document.querySelectorAll('.req-row')].map((_,i)=>{
+      const pid=parseInt(document.querySelectorAll('.rp-product')[i]?.value);
+      const qty2=parseInt(document.querySelectorAll('.rp-qty')[i]?.value)||1;
+      return{store_id:sid,product_id:pid,quantity:qty2,note,status:'new',created_at:today()};
+    }).filter(r=>r.product_id);
+    if(!rows.length)return;
     S.modal=null;render();
     try{
-      const[nr]=await api('requests',{method:'POST',body:JSON.stringify({store_id:sid,product_id:pid,quantity:qty2,note,status:'new',created_at:today()})});
-      S.requests.unshift(nr);
+      for(const row of rows){
+        const[nr]=await api('requests',{method:'POST',body:JSON.stringify(row)});
+        S.requests.unshift(nr);
+      }
       if(S.session.role==='admin')S.adminSubTab='requests';
-      showToast('✓ '+t().saved);render();
+      showToast('✓ '+rows.length+' '+t().requests+' '+t().saved);render();
     }catch(e){showToast('❌ '+t().errSave,'err')}
   });
 
