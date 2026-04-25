@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Apparel Stock Manager</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg1:#ffffff;--bg2:#f5f5f3;--bg3:#eeede9;
+  --t1:#1a1a1a;--t2:#6b6b6b;--t3:#9b9b9b;
+  --b2:rgba(0,0,0,0.2);--b3:rgba(0,0,0,0.1);
+  --r1:8px;--r2:12px;
+  --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --mono:'Courier New',monospace;
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg1:#1e1e1e;--bg2:#2a2a2a;--bg3:#333;
+  --t1:#e8e8e8;--t2:#a0a0a0;--t3:#6a6a6a;
+  --b2:rgba(255,255,255,0.2);--b3:rgba(255,255,255,0.1);
+}}
+body{background:var(--bg3);font-family:var(--sans);color:var(--t1);min-height:100vh;padding:1.5rem}
+.wrap{max-width:1100px;margin:0 auto}
+input,select,textarea,button{font-family:var(--sans)}
+input[type=text],input[type=password],input[type=number],select{height:34px;font-size:13px;border-radius:var(--r1);border:0.5px solid var(--b2);background:var(--bg2);color:var(--t1);padding:0 10px;width:100%}
+textarea{font-size:13px;border-radius:var(--r1);border:0.5px solid var(--b2);background:var(--bg2);color:var(--t1);padding:7px 10px;width:100%;height:60px;resize:vertical}
+input:focus,select:focus,textarea:focus{outline:none;border-color:#D4537E;box-shadow:0 0 0 2px rgba(212,83,126,.15)}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 13px;font-size:12px;border:0.5px solid var(--b2);border-radius:var(--r1);background:transparent;color:var(--t1);cursor:pointer;transition:all .15s;white-space:nowrap}
+.btn:hover{background:var(--bg2)}
+.bp{background:#D4537E;color:#fff;border-color:#D4537E}.bp:hover{background:#993556;border-color:#993556}
+.bsm{padding:3px 9px;font-size:11px}
+.bd{color:#A32D2D;border-color:transparent}.bd:hover{background:#FCEBEB}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:500}
+.bok{background:#EAF3DE;color:#3B6D11}.blow{background:#FAEEDA;color:#854F0B}.bout{background:#FCEBEB;color:#A32D2D}
+.bnew{background:#EEEDFE;color:#3C3489}.bsent{background:#E1F5EE;color:#085041}.bdone{background:#EAF3DE;color:#27500A}
+.badm{background:#FBEAF0;color:#72243E}.bstr{background:#E6F1FB;color:#0C447C}
+.met{background:var(--bg2);border-radius:var(--r1);padding:.8rem 1rem}
+.met-l{font-size:11px;color:var(--t2);margin-bottom:3px}
+.met-v{font-size:20px;font-weight:500}
+.panel{background:var(--bg1);border:0.5px solid var(--b3);border-radius:var(--r2);overflow:hidden;margin-bottom:.9rem}
+.ph{padding:10px 14px;border-bottom:0.5px solid var(--b3);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.pht{font-size:13px;font-weight:500}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
+thead th{padding:7px 12px;text-align:left;color:var(--t2);font-weight:400;border-bottom:0.5px solid var(--b3);white-space:nowrap}
+tbody td{padding:7px 12px;border-bottom:0.5px solid var(--b3);vertical-align:middle;overflow:hidden;text-overflow:ellipsis}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:var(--bg2)}
+.tabs{display:flex;gap:3px;background:var(--bg2);border-radius:var(--r1);padding:3px;border:0.5px solid var(--b3);flex-wrap:wrap;margin-bottom:1rem}
+.tab{padding:5px 11px;font-size:12px;border:none;background:transparent;color:var(--t2);border-radius:6px;cursor:pointer;transition:all .15s}
+.tab.on{background:var(--bg1);color:var(--t1);font-weight:500;border:0.5px solid var(--b3)}
+.barcell{display:flex;align-items:center;gap:5px}
+.barbg{flex:1;height:5px;background:var(--bg2);border-radius:3px;min-width:35px}
+.barfill{height:5px;border-radius:3px}
+.mover{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:999}
+.mbox{background:var(--bg1);border-radius:var(--r2);border:0.5px solid var(--b3);padding:1.4rem;width:370px;max-width:95vw}
+.mbox h3{font-size:15px;font-weight:500;margin-bottom:1rem}
+.fr{margin-bottom:10px}
+.fr label{display:block;font-size:11px;color:var(--t2);margin-bottom:3px}
+.fa{display:flex;gap:7px;justify-content:flex-end;margin-top:1rem}
+.ai{display:flex;align-items:center;justify-content:space-between;padding:9px 11px;border-radius:var(--r1);margin-bottom:7px;font-size:12px}
+.alow{background:#FAEEDA;border:0.5px solid #FAC775}
+.aout{background:#FCEBEB;border:0.5px solid #F7C1C1}
+.lcwrap{display:flex;align-items:center;justify-content:center;min-height:80vh}
+.lcbox{background:var(--bg1);border:0.5px solid var(--b3);border-radius:var(--r2);padding:2rem;width:340px;max-width:95vw}
+.lbtn{padding:3px 10px;font-size:11px;border-radius:20px;border:0.5px solid var(--b2);background:transparent;color:var(--t2);cursor:pointer;transition:all .15s}
+.lbtn.on{background:#D4537E;color:#fff;border-color:#D4537E}
+.loading{display:flex;align-items:center;justify-content:center;padding:3rem;color:var(--t2);font-size:13px;gap:10px}
+.spinner{width:18px;height:18px;border:2px solid var(--b3);border-top-color:#D4537E;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--bg1);border:0.5px solid var(--b3);border-radius:var(--r1);padding:10px 16px;font-size:12px;z-index:9999;box-shadow:0 2px 12px rgba(0,0,0,.12)}
+.toast.ok{border-color:#639922;color:#3B6D11}
+.toast.err{border-color:#E24B4A;color:#A32D2D}
+</style>
+</head>
+<body>
+<div class="wrap"><div id="root"></div></div>
+<script>
+const SUPABASE_URL='https://mkapnhjvrujifhnseiuk.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1rYXBuaGp2cnVqaWZobnNlaXVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxMjYzNDUsImV4cCI6MjA5MjcwMjM0NX0.Tnp0snwa7-m07ri8AI3bBvb1tdptx3utVEY7TLdqz6o';
+const PINK='#D4537E',AMBER='#EF9F27',RED='#E24B4A',GREEN='#639922';
+
+const TR={
+  nl:{appName:'Apparel Stock',signIn:'Inloggen',signInSub:'Inloggen om verder te gaan',username:'Gebruikersnaam',password:'Wachtwoord',userPlaceholder:'admin of store1 … store19',quickLogin:'Snel inloggen',storeHint:'Winkel logins: store1/store1pass t/m store19/store19pass',loginErr:'Onjuiste gebruikersnaam of wachtwoord.',signOut:'Uitloggen',fullAccess:'Volledige toegang —',stores2:'winkels',storeOnly:'Alleen aanvragen indienen',totalUnits:'Totaal stuks',storesLbl:'Winkels',products:'Producten',lowStock:'Laag voorraad',outOfStock:'Uitverkocht',openReqs:'Open aanvragen',stockTab:'Voorraad',alerts:'Meldingen',requests:'Aanvragen',stores:'Winkels',accounts:'Accounts',stockOverview:'Voorraad overzicht',allStores:'Alle winkels',allStatus:'Alle',low:'Laag',out:'Uitverkocht',search:'Zoeken...',product:'Product',sku:'SKU',total:'Totaal',status:'Status',category:'Categorie',size:'Maat',min:'Min.',edit:'bewerk',req:'aanvr.',useFilter:'gebruik filter',stockAlerts:'Voorraad meldingen',active:'actief',noAlerts:'Geen meldingen — alle voorraad op peil',onlyLeft:'Nog maar',leftOf:'stuks (min.',requestBtn2:'Aanvragen',stockRequests:'Voorraad aanvragen',newRequest:'+ Nieuwe aanvraag',date:'Datum',store:'Winkel',qty:'Stuks',note:'Notitie',actions:'Acties',noRequests:'Nog geen aanvragen',markSent:'Verzonden',markDone:'Klaar',del:'Del',addStore:'+ Winkel toevoegen',city:'Stad',name:'Naam',remove:'Verwijderen',addProduct:'+ Product toevoegen',minStock:'Min. voorraad',addAccount:'+ Account toevoegen',displayName:'Weergavenaam',role:'Rol',linkedStore:'Gekoppelde winkel',none:'— geen —',admin:'Admin',storeRole:'Winkel',cancel:'Annuleren',save:'Opslaan',add:'Toevoegen',submit:'Indienen',updateStock:'Voorraad bijwerken',addStoreName:'Winkel toevoegen',addProductName:'Product toevoegen',requestStock:'Voorraad aanvragen',addAccountName:'Account toevoegen',myStock:'Mijn voorraad',myRequests:'Mijn aanvragen',attention:'Aandacht nodig',openReqsStore:'Open aanvragen',inStock:'Op voorraad',noMyReqs:'Nog geen aanvragen ingediend',noProducts:'Geen producten gevonden',new:'Nieuw',sent:'Verzonden',done:'Klaar',okLbl:'OK',outLbl:'Uit',lowLbl:'Laag',general:'Algemeen',saving:'Opslaan...',saved:'Opgeslagen',errSave:'Fout bij opslaan',loading:'Laden...',outOfStockLbl:'Uitverkocht',
+  },
+  en:{appName:'Apparel Stock',signIn:'Sign in',signInSub:'Sign in to continue',username:'Username',password:'Password',userPlaceholder:'admin or store1 … store19',quickLogin:'Quick login',storeHint:'Store logins: store1/store1pass through store19/store19pass',loginErr:'Incorrect username or password.',signOut:'Sign out',fullAccess:'Full access —',stores2:'stores',storeOnly:'Stock request access only',totalUnits:'Total units',storesLbl:'Stores',products:'Products',lowStock:'Low stock',outOfStock:'Out of stock',openReqs:'Open requests',stockTab:'Stock',alerts:'Alerts',requests:'Requests',stores:'Stores',accounts:'Accounts',stockOverview:'Inventory overview',allStores:'All stores',allStatus:'All',low:'Low',out:'Out of stock',search:'Search...',product:'Product',sku:'SKU',total:'Total',status:'Status',category:'Category',size:'Size',min:'Min.',edit:'edit',req:'req.',useFilter:'use filter',stockAlerts:'Stock alerts',active:'active',noAlerts:'No alerts — all stock levels healthy',onlyLeft:'Only',leftOf:'left (min.',requestBtn2:'Request',stockRequests:'Stock requests',newRequest:'+ New request',date:'Date',store:'Store',qty:'Qty',note:'Note',actions:'Actions',noRequests:'No requests yet',markSent:'Mark sent',markDone:'Mark done',del:'Del',addStore:'+ Add store',city:'City',name:'Name',remove:'Remove',addProduct:'+ Add product',minStock:'Min. stock',addAccount:'+ Add account',displayName:'Display name',role:'Role',linkedStore:'Linked store',none:'— none —',admin:'Admin',storeRole:'Store',cancel:'Cancel',save:'Save',add:'Add',submit:'Submit',updateStock:'Update stock',addStoreName:'Add store',addProductName:'Add product',requestStock:'Request stock',addAccountName:'Add account',myStock:'My stock',myRequests:'My requests',attention:'Needs attention',openReqsStore:'Open requests',inStock:'In stock',noMyReqs:'No requests submitted yet',noProducts:'No products found',new:'New',sent:'Sent',done:'Done',okLbl:'OK',outLbl:'Out',lowLbl:'Low',general:'General',saving:'Saving...',saved:'Saved',errSave:'Save error',loading:'Loading...',outOfStockLbl:'Out of stock',
+  },
+  tr:{appName:'Giyim Stok',signIn:'Giriş Yap',signInSub:'Devam etmek için giriş yapın',username:'Kullanıcı adı',password:'Şifre',userPlaceholder:'admin veya store1 … store19',quickLogin:'Hızlı giriş',storeHint:'Mağaza: store1/store1pass … store19/store19pass',loginErr:'Hatalı kullanıcı adı veya şifre.',signOut:'Çıkış Yap',fullAccess:'Tam erişim —',stores2:'mağazalar',storeOnly:'Yalnızca talep gönderme',totalUnits:'Toplam adet',storesLbl:'Mağazalar',products:'Ürünler',lowStock:'Düşük stok',outOfStock:'Tükendi',openReqs:'Açık talepler',stockTab:'Stok',alerts:'Uyarılar',requests:'Talepler',stores:'Mağazalar',accounts:'Hesaplar',stockOverview:'Stok genel görünümü',allStores:'Tüm mağazalar',allStatus:'Tümü',low:'Düşük',out:'Tükendi',search:'Ara...',product:'Ürün',sku:'SKU',total:'Toplam',status:'Durum',category:'Kategori',size:'Beden',min:'Min.',edit:'düzenle',req:'talep',useFilter:'filtre kullan',stockAlerts:'Stok uyarıları',active:'aktif',noAlerts:'Uyarı yok — tüm stok normal',onlyLeft:'Yalnızca',leftOf:'adet kaldı (min.',requestBtn2:'Talep Et',stockRequests:'Stok talepleri',newRequest:'+ Yeni talep',date:'Tarih',store:'Mağaza',qty:'Adet',note:'Not',actions:'İşlemler',noRequests:'Henüz talep yok',markSent:'Gönderildi',markDone:'Tamamlandı',del:'Sil',addStore:'+ Mağaza ekle',city:'Şehir',name:'Ad',remove:'Kaldır',addProduct:'+ Ürün ekle',minStock:'Min. stok',addAccount:'+ Hesap ekle',displayName:'Görünen ad',role:'Rol',linkedStore:'Bağlı mağaza',none:'— yok —',admin:'Admin',storeRole:'Mağaza',cancel:'İptal',save:'Kaydet',add:'Ekle',submit:'Gönder',updateStock:'Stoku güncelle',addStoreName:'Mağaza ekle',addProductName:'Ürün ekle',requestStock:'Stok talep et',addAccountName:'Hesap ekle',myStock:'Stoğum',myRequests:'Taleplerim',attention:'Dikkat gerekiyor',openReqsStore:'Açık talepler',inStock:'Stokta var',noMyReqs:'Henüz talep gönderilmedi',noProducts:'Ürün bulunamadı',new:'Yeni',sent:'Gönderildi',done:'Tamamlandı',okLbl:'OK',outLbl:'Bitti',lowLbl:'Düşük',general:'Genel',saving:'Kaydediliyor...',saved:'Kaydedildi',errSave:'Kayıt hatası',loading:'Yükleniyor...',outOfStockLbl:'Tükendi',
+  }
+};
+
+const S={
+  session:null,modal:null,search:'',filterStore:'all',filterStatus:'all',adminSubTab:'stock',
+  loginErr:'',loginUser:'',loginPass:'',
+  lang:localStorage.getItem('appLang')||'nl',
+  stores:[],products:[],stock:{},requests:[],accounts:[],
+  loading:true,
+};
+
+const t=()=>TR[S.lang];
+const g=id=>document.getElementById(id);
+const gv=id=>{const e=g(id);return e?e.value.trim():''};
+const today=()=>new Date().toISOString().slice(0,10);
+const barCol=(q,min)=>q===0?RED:q<min?AMBER:GREEN;
+
+async function api(path,opts={}){
+  const res=await fetch(SUPABASE_URL+'/rest/v1/'+path,{
+    headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':'application/json','Prefer':'return=representation',...(opts.headers||{})},
+    ...opts
+  });
+  if(!res.ok){const e=await res.text();throw new Error(e)}
+  const txt=await res.text();
+  return txt?JSON.parse(txt):null;
+}
+
+async function loadAll(){
+  S.loading=true;render();
+  try{
+    const[stores,products,stockRows,requests,accounts]=await Promise.all([
+      api('stores?order=id'),
+      api('products?order=id'),
+      api('stock?select=*'),
+      api('requests?order=id.desc'),
+      api('accounts?order=username'),
+    ]);
+    S.stores=stores||[];
+    S.products=products||[];
+    S.stock={};
+    (stockRows||[]).forEach(r=>{S.stock[r.store_id+'-'+r.product_id]=r.quantity});
+    S.requests=requests||[];
+    S.accounts=accounts||[];
+  }catch(e){showToast('❌ '+e.message,'err')}
+  S.loading=false;render();
+}
+
+function qty(sid,pid){return S.stock[sid+'-'+pid]??0}
+function storeTotal(sid){return S.products.reduce((a,p)=>a+qty(sid,p.id),0)}
+function storeItems(sid){return S.products.filter(p=>qty(sid,p.id)>0).length}
+function totalAll(){let x=0;S.products.forEach(p=>S.stores.forEach(s=>{x+=qty(s.id,p.id)}));return x}
+function allLow(){let c=0;S.products.forEach(p=>S.stores.forEach(s=>{const q=qty(s.id,p.id);if(q>0&&q<p.min_stock)c++}));return c}
+function allOut(){let c=0;S.products.forEach(p=>S.stores.forEach(s=>{if(qty(s.id,p.id)===0)c++}));return c}
+function openReqs(){return S.requests.filter(r=>r.status==='new'||r.status==='sent').length}
+
+function sbadge(q,min){const l=t();return q===0?`<span class="badge bout">${l.outLbl}</span>`:q<min?`<span class="badge blow">${l.lowLbl}</span>`:`<span class="badge bok">${l.okLbl}</span>`}
+function rbadge(s){const l=t();return s==='new'?`<span class="badge bnew">${l.new}</span>`:s==='sent'?`<span class="badge bsent">${l.sent}</span>`:`<span class="badge bdone">${l.done}</span>`}
+
+function showToast(msg,type='ok'){
+  const el=document.createElement('div');
+  el.className='toast '+type;el.textContent=msg;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),2500);
+}
+
+function langBar(){return`<div style="display:flex;gap:5px">
+  <button class="lbtn ${S.lang==='nl'?'on':''}" data-lang="nl">NL</button>
+  <button class="lbtn ${S.lang==='en'?'on':''}" data-lang="en">EN</button>
+  <button class="lbtn ${S.lang==='tr'?'on':''}" data-lang="tr">TR</button>
+</div>`}
+
+function render(){
+  g('root').innerHTML=S.loading?`<div class="loading"><div class="spinner"></div>${t().loading}</div>`:S.session?buildApp():buildLogin();
+  bind();
+  if(!S.loading&&S.modal)bindModal();
+}
+
+function buildLogin(){const l=t();return`<div class="lcwrap"><div class="lcbox">
+  <div style="display:flex;justify-content:flex-end;margin-bottom:1rem">${langBar()}</div>
+  <div style="text-align:center;margin-bottom:1.5rem">
+    <div style="width:50px;height:50px;background:#FBEAF0;border-radius:var(--r2);display:flex;align-items:center;justify-content:center;margin:0 auto 12px">
+      <svg width="24" height="24" viewBox="0 0 20 20" fill="none"><rect x="2" y="9" width="16" height="10" rx="2" stroke="#D4537E" stroke-width="1.5"/><path d="M6 9V6a4 4 0 018 0v3" stroke="#D4537E" stroke-width="1.5" stroke-linecap="round"/></svg>
+    </div>
+    <div style="font-size:21px;font-weight:500">${l.appName}</div>
+    <div style="font-size:13px;color:var(--t2);margin-top:4px">${l.signInSub}</div>
+  </div>
+  ${S.loginErr?`<div style="background:#FCEBEB;border:0.5px solid #F7C1C1;border-radius:var(--r1);padding:9px 12px;font-size:12px;color:#A32D2D;margin-bottom:14px">${S.loginErr}</div>`:''}
+  <div class="fr"><label>${l.username}</label><input type="text" id="lu" placeholder="${l.userPlaceholder}" value="${S.loginUser}"></div>
+  <div class="fr"><label>${l.password}</label><input type="password" id="lp" placeholder="${l.password}" value="${S.loginPass}"></div>
+  <button class="btn bp" style="width:100%;justify-content:center;height:38px;font-size:13px;margin-top:4px" id="login-btn">${l.signIn}</button>
+  <div style="margin-top:1.3rem;border-top:0.5px solid var(--b3);padding-top:1rem">
+    <div style="font-size:11px;color:var(--t2);margin-bottom:7px;font-weight:500">${l.quickLogin}:</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px">
+      <button class="btn bsm" data-quick="admin">Admin</button>
+      <button class="btn bsm" data-quick="store1">Rotterdam</button>
+      <button class="btn bsm" data-quick="store2">Amsterdam C</button>
+      <button class="btn bsm" data-quick="store7">Den Haag</button>
+    </div>
+  </div>
+  <div style="margin-top:1rem;font-size:11px;color:var(--t3);text-align:center">${l.storeHint}</div>
+</div></div>`}
+
+function buildApp(){return S.session.role==='admin'?buildAdmin():buildStoreView()}
+
+function buildAdmin(){
+  const l=t(),sub=S.adminSubTab,al=allLow()+allOut(),or=openReqs();
+  return`<div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem;flex-wrap:wrap;gap:10px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="width:40px;height:40px;background:#FBEAF0;border-radius:var(--r1);display:flex;align-items:center;justify-content:center">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="9" width="16" height="10" rx="2" stroke="#D4537E" stroke-width="1.5"/><path d="M6 9V6a4 4 0 018 0v3" stroke="#D4537E" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </div>
+      <div>
+        <div style="font-size:17px;font-weight:500">${l.appName} <span class="badge badm" style="margin-left:5px;vertical-align:middle">${l.admin}</span></div>
+        <div style="font-size:12px;color:var(--t2)">${l.fullAccess} ${S.stores.length} ${l.stores2}</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">${langBar()}<button class="btn bsm" id="logout-btn">${l.signOut}</button></div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:1.2rem">
+    <div class="met"><div class="met-l">${l.totalUnits}</div><div class="met-v">${totalAll().toLocaleString()}</div></div>
+    <div class="met"><div class="met-l">${l.storesLbl}</div><div class="met-v">${S.stores.length}</div></div>
+    <div class="met"><div class="met-l">${l.products}</div><div class="met-v">${S.products.length}</div></div>
+    <div class="met"><div class="met-l" style="color:#854F0B">${l.lowStock}</div><div class="met-v" style="color:${AMBER}">${allLow()}</div></div>
+    <div class="met"><div class="met-l" style="color:#A32D2D">${l.outOfStock}</div><div class="met-v" style="color:${RED}">${allOut()}</div></div>
+    <div class="met"><div class="met-l" style="color:#3C3489">${l.openReqs}</div><div class="met-v" style="color:#7F77DD">${or}</div></div>
+  </div>
+  <div class="tabs">
+    <button class="tab ${sub==='stock'?'on':''}" data-sub="stock">${l.stockTab}</button>
+    <button class="tab ${sub==='alerts'?'on':''}" data-sub="alerts">${l.alerts}${al?` <span style="background:#A32D2D;color:#fff;border-radius:10px;padding:0 5px;font-size:10px;margin-left:3px">${al}</span>`:''}</button>
+    <button class="tab ${sub==='requests'?'on':''}" data-sub="requests">${l.requests}${or?` <span style="background:#3C3489;color:#fff;border-radius:10px;padding:0 5px;font-size:10px;margin-left:3px">${or}</span>`:''}</button>
+    <button class="tab ${sub==='stores'?'on':''}" data-sub="stores">${l.stores}</button>
+    <button class="tab ${sub==='products'?'on':''}" data-sub="products">${l.products}</button>
+    <button class="tab ${sub==='accounts'?'on':''}" data-sub="accounts">${l.accounts}</button>
+  </div>
+  ${sub==='stock'?bStock():sub==='alerts'?bAlerts():sub==='requests'?bRequests():sub==='stores'?bStores():sub==='products'?bProducts():bAccounts()}
+  ${S.modal?buildModal():''}
+</div>`}
+
+function bStock(){
+  const l=t();
+  const cols=S.filterStore==='all'?S.stores:S.stores.filter(s=>s.id===parseInt(S.filterStore));
+  const maxQ=Math.max(1,...S.products.flatMap(p=>S.stores.map(s=>qty(s.id,p.id))));
+  const filtered=S.products.filter(p=>{
+    if(S.search&&!p.name.toLowerCase().includes(S.search.toLowerCase())&&!p.sku.toLowerCase().includes(S.search.toLowerCase()))return false;
+    if(S.filterStore!=='all'){const sid=parseInt(S.filterStore),q=qty(sid,p.id);if(S.filterStatus==='low'&&!(q>0&&q<p.min_stock))return false;if(S.filterStatus==='out'&&q!==0)return false}
+    return true;
+  });
+  const show=cols.slice(0,5),extra=cols.length-show.length;
+  return`<div class="panel">
+  <div class="ph"><span class="pht">${l.stockOverview}</span>
+    <div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center">
+      <input type="text" id="srch" placeholder="${l.search}" value="${S.search}" style="width:130px;height:30px;font-size:12px">
+      <select id="fstore" style="height:30px;font-size:12px"><option value="all">${l.allStores}</option>${S.stores.map(s=>`<option value="${s.id}" ${S.filterStore==s.id?'selected':''}>${s.name}</option>`).join('')}</select>
+      <select id="fstatus" style="height:30px;font-size:12px"><option value="all">${l.allStatus}</option><option value="low">${l.low}</option><option value="out">${l.out}</option></select>
+      <button class="btn bsm" id="refresh-btn" title="Ververs">↻</button>
+    </div>
+  </div>
+  <div class="tw"><table>
+    <colgroup><col style="width:160px"><col style="width:70px">${show.map(()=>'<col style="width:115px">').join('')}${extra?'<col style="width:70px">':''}<col style="width:58px"><col style="width:60px"></colgroup>
+    <thead><tr><th>${l.product}</th><th>${l.sku}</th>${show.map(s=>`<th title="${s.name}">${s.name}</th>`).join('')}${extra?`<th>+${extra}</th>`:''}<th>${l.total}</th><th>${l.status}</th></tr></thead>
+    <tbody>${filtered.length?filtered.map(p=>{
+      const tot=S.stores.reduce((a,s)=>a+qty(s.id,p.id),0);
+      return`<tr>
+        <td><div style="font-weight:500">${p.name}</div><div style="font-size:10px;color:var(--t3)">${p.category} · ${p.size}</div></td>
+        <td style="color:var(--t2)">${p.sku}</td>
+        ${show.map(s=>{const q=qty(s.id,p.id),pct=Math.round(q/maxQ*100),c=barCol(q,p.min_stock);
+          return`<td><div class="barcell"><span style="min-width:26px;text-align:right;font-weight:500;color:${q===0?RED:q<p.min_stock?AMBER:'var(--t1)'}">${q}</span><div class="barbg"><div class="barfill" style="width:${pct}%;background:${c}"></div></div></div>
+          <span class="elk" data-edit="${s.id}-${p.id}" style="font-size:10px;color:var(--t3);cursor:pointer">${l.edit}</span>
+          <span class="rlk" data-req="${s.id}-${p.id}" style="font-size:10px;color:#7F77DD;cursor:pointer;margin-left:4px">${l.req}</span></td>`;
+        }).join('')}
+        ${extra?`<td style="color:var(--t3);font-size:11px">${l.useFilter}</td>`:''}
+        <td style="font-weight:500">${tot}</td>
+        <td>${sbadge(tot,p.min_stock)}</td>
+      </tr>`;
+    }).join(''):`<tr><td colspan="20" style="text-align:center;padding:2rem;color:var(--t3)">${l.noProducts}</td></tr>`}
+    </tbody>
+  </table></div>
+</div>`}
+
+function bAlerts(){
+  const l=t(),items=[];
+  S.products.forEach(p=>S.stores.forEach(s=>{const q=qty(s.id,p.id);if(q===0)items.push({type:'out',s,p,q});else if(q<p.min_stock)items.push({type:'low',s,p,q})}));
+  items.sort((a,b)=>a.type==='out'&&b.type!=='out'?-1:1);
+  return`<div class="panel">
+  <div class="ph"><span class="pht">${l.stockAlerts}</span><span style="font-size:11px;color:var(--t2)">${items.length} ${l.active}</span></div>
+  <div style="padding:12px">${items.length?items.map(a=>`
+    <div class="ai ${a.type==='out'?'aout':'alow'}">
+      <div><div style="font-weight:500;font-size:12px">${a.p.name} — ${a.s.name}</div>
+      <div style="font-size:11px;color:var(--t2)">${a.type==='out'?l.outOfStockLbl:`${l.onlyLeft} ${a.q} ${l.leftOf} ${a.p.min_stock})`} · ${a.p.sku}</div></div>
+      <div style="display:flex;gap:6px;align-items:center">
+        ${a.type==='out'?`<span class="badge bout">${l.outLbl}</span>`:`<span class="badge blow">${l.lowLbl}</span>`}
+        <button class="btn bsm rlk" data-req="${a.s.id}-${a.p.id}">${l.requestBtn2}</button>
+      </div>
+    </div>`).join(''):`<div style="text-align:center;padding:2rem;color:var(--t3)">${l.noAlerts}</div>`}
+  </div>
+</div>`}
+
+function bRequests(){
+  const l=t();
+  return`<div class="panel">
+  <div class="ph"><span class="pht">${l.stockRequests}</span><button class="btn bp bsm" id="add-req-btn">${l.newRequest}</button></div>
+  <div class="tw"><table>
+    <colgroup><col style="width:88px"><col style="width:140px"><col style="width:130px"><col style="width:48px"><col style="width:72px"><col style="width:175px"><col style="width:115px"></colgroup>
+    <thead><tr><th>${l.date}</th><th>${l.product}</th><th>${l.store}</th><th>${l.qty}</th><th>${l.status}</th><th>${l.note}</th><th>${l.actions}</th></tr></thead>
+    <tbody>${S.requests.length?S.requests.map(r=>{
+      const p=S.products.find(x=>x.id===r.product_id),st=S.stores.find(x=>x.id===r.store_id);
+      return`<tr>
+        <td style="color:var(--t2)">${r.created_at}</td>
+        <td style="font-weight:500">${p?p.name:'—'}</td>
+        <td>${st?st.name:'—'}</td>
+        <td style="font-weight:500">${r.quantity}</td>
+        <td>${rbadge(r.status)}</td>
+        <td style="font-size:11px;color:var(--t2)">${r.note||'—'}</td>
+        <td><div style="display:flex;gap:4px;flex-wrap:wrap">
+          ${r.status==='new'?`<button class="btn bsm msent" data-id="${r.id}">${l.markSent}</button>`:''}
+          ${r.status==='sent'?`<button class="btn bsm mdone" data-id="${r.id}" style="color:${GREEN}">${l.markDone}</button>`:''}
+          <button class="btn bd bsm dreq" data-id="${r.id}">${l.del}</button>
+        </div></td>
+      </tr>`;
+    }).join(''):`<tr><td colspan="7" style="text-align:center;padding:1.5rem;color:var(--t3)">${l.noRequests}</td></tr>`}
+    </tbody>
+  </table></div>
+</div>`}
+
+function bStores(){
+  const l=t();
+  return`<div class="panel">
+  <div class="ph"><span class="pht">${l.stores} (${S.stores.length})</span><button class="btn bp bsm" id="add-store-btn">${l.addStore}</button></div>
+  <div class="tw"><table>
+    <colgroup><col style="width:200px"><col style="width:140px"><col style="width:80px"><col style="width:80px"><col style="width:100px"></colgroup>
+    <thead><tr><th>${l.name}</th><th>${l.city}</th><th>${l.totalUnits}</th><th>${l.products}</th><th></th></tr></thead>
+    <tbody>${S.stores.map(s=>`<tr>
+      <td style="font-weight:500">${s.name}</td><td style="color:var(--t2)">${s.city}</td>
+      <td>${storeTotal(s.id)}</td><td>${storeItems(s.id)}</td>
+      <td><button class="btn bd bsm dstore" data-id="${s.id}">${l.remove}</button></td>
+    </tr>`).join('')}</tbody>
+  </table></div>
+</div>`}
+
+function bProducts(){
+  const l=t();
+  return`<div class="panel">
+  <div class="ph"><span class="pht">${l.products}</span><button class="btn bp bsm" id="add-prod-btn">${l.addProduct}</button></div>
+  <div class="tw"><table>
+    <colgroup><col style="width:170px"><col style="width:80px"><col style="width:110px"><col style="width:65px"><col style="width:65px"><col style="width:68px"><col style="width:90px"></colgroup>
+    <thead><tr><th>${l.name}</th><th>${l.sku}</th><th>${l.category}</th><th>${l.size}</th><th>${l.min}</th><th>${l.total}</th><th></th></tr></thead>
+    <tbody>${S.products.map(p=>`<tr>
+      <td style="font-weight:500">${p.name}</td><td style="color:var(--t2)">${p.sku}</td>
+      <td>${p.category}</td><td>${p.size}</td><td>${p.min_stock}</td>
+      <td>${S.stores.reduce((a,s)=>a+qty(s.id,p.id),0)}</td>
+      <td><button class="btn bd bsm dprod" data-id="${p.id}">${l.remove}</button></td>
+    </tr>`).join('')}</tbody>
+  </table></div>
+</div>`}
+
+function bAccounts(){
+  const l=t();
+  return`<div class="panel">
+  <div class="ph"><span class="pht">${l.accounts} (${S.accounts.length})</span><button class="btn bp bsm" id="add-acc-btn">${l.addAccount}</button></div>
+  <div class="tw"><table>
+    <colgroup><col style="width:130px"><col style="width:185px"><col style="width:130px"><col style="width:70px"><col style="width:100px"></colgroup>
+    <thead><tr><th>${l.username}</th><th>${l.name}</th><th>${l.password}</th><th>${l.role}</th><th></th></tr></thead>
+    <tbody>${S.accounts.map(a=>`<tr>
+      <td style="font-weight:500">${a.username}</td><td>${a.display_name}</td>
+      <td style="font-family:var(--mono);font-size:11px;color:var(--t2)">${a.password}</td>
+      <td>${a.role==='admin'?`<span class="badge badm">${l.admin}</span>`:`<span class="badge bstr">${l.storeRole}</span>`}</td>
+      <td>${a.id!=='admin'?`<button class="btn bd bsm dacc" data-id="${a.id}">${l.remove}</button>`:''}</td>
+    </tr>`).join('')}</tbody>
+  </table></div>
+</div>`}
+
+function buildStoreView(){
+  const l=t(),acc=S.session,store=S.stores.find(s=>s.id===acc.store_id);
+  const myReqs=S.requests.filter(r=>r.store_id===acc.store_id);
+  const maxQ=Math.max(1,...S.products.map(p=>qty(acc.store_id,p.id)));
+  return`<div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.1rem;flex-wrap:wrap;gap:10px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="width:42px;height:42px;background:#E6F1FB;border-radius:var(--r1);display:flex;align-items:center;justify-content:center;font-weight:500;font-size:14px;color:#0C447C">${(store?.name||'W').slice(0,2).toUpperCase()}</div>
+      <div>
+        <div style="font-size:17px;font-weight:500">${store?.name||acc.display_name} <span class="badge bstr" style="margin-left:5px;vertical-align:middle">${l.storeRole}</span></div>
+        <div style="font-size:12px;color:var(--t2)">${l.storeOnly}</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">${langBar()}<button class="btn bsm" id="refresh-btn" title="Ververs">↻</button><button class="btn bsm" id="logout-btn">${l.signOut}</button></div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:1.1rem">
+    <div class="met"><div class="met-l">${l.totalUnits}</div><div class="met-v">${storeTotal(acc.store_id)}</div></div>
+    <div class="met"><div class="met-l">${l.inStock}</div><div class="met-v">${storeItems(acc.store_id)}</div></div>
+    <div class="met"><div class="met-l" style="color:#854F0B">${l.attention}</div><div class="met-v" style="color:${AMBER}">${S.products.filter(p=>{const q=qty(acc.store_id,p.id);return q===0||q<p.min_stock}).length}</div></div>
+    <div class="met"><div class="met-l" style="color:#3C3489">${l.openReqsStore}</div><div class="met-v" style="color:#7F77DD">${myReqs.filter(r=>r.status!=='done').length}</div></div>
+  </div>
+  <div class="panel">
+    <div class="ph"><span class="pht">${l.myStock} — ${store?.name}</span><button class="btn bp bsm" id="store-req-btn">+ ${l.requestStock}</button></div>
+    <div class="tw"><table>
+      <colgroup><col style="width:175px"><col style="width:95px"><col style="width:115px"><col style="width:60px"><col style="width:80px"><col style="width:90px"></colgroup>
+      <thead><tr><th>${l.product}</th><th>${l.category}</th><th>${l.stockTab}</th><th>${l.min}</th><th>${l.status}</th><th></th></tr></thead>
+      <tbody>${S.products.map(p=>{
+        const q=qty(acc.store_id,p.id),pct=Math.round(q/maxQ*100),c=barCol(q,p.min_stock);
+        return`<tr>
+          <td><div style="font-weight:500">${p.name}</div><div style="font-size:10px;color:var(--t3)">${p.sku} · ${p.size}</div></td>
+          <td>${p.category}</td>
+          <td><div class="barcell"><span style="min-width:28px;font-weight:500;color:${q===0?RED:q<p.min_stock?AMBER:'var(--t1)'}">${q}</span><div class="barbg"><div class="barfill" style="width:${pct}%;background:${c}"></div></div></div></td>
+          <td style="color:var(--t2)">${p.min_stock}</td>
+          <td>${sbadge(q,p.min_stock)}</td>
+          <td><button class="btn bsm rlk" data-req="${acc.store_id}-${p.id}">${l.requestBtn2}</button></td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table></div>
+  </div>
+  <div class="panel">
+    <div class="ph"><span class="pht">${l.myRequests}</span></div>
+    <div class="tw"><table>
+      <colgroup><col style="width:88px"><col style="width:175px"><col style="width:60px"><col style="width:72px"><col style="width:220px"></colgroup>
+      <thead><tr><th>${l.date}</th><th>${l.product}</th><th>${l.qty}</th><th>${l.status}</th><th>${l.note}</th></tr></thead>
+      <tbody>${myReqs.length?myReqs.map(r=>{const p=S.products.find(x=>x.id===r.product_id);return`<tr>
+        <td style="color:var(--t2)">${r.created_at}</td>
+        <td style="font-weight:500">${p?p.name:'—'}</td>
+        <td>${r.quantity}</td><td>${rbadge(r.status)}</td>
+        <td style="font-size:11px;color:var(--t2)">${r.note||'—'}</td>
+      </tr>`}).join(''):`<tr><td colspan="5" style="text-align:center;padding:1.5rem;color:var(--t3)">${l.noMyReqs}</td></tr>`}
+      </tbody>
+    </table></div>
+  </div>
+  ${S.modal?buildModal():''}
+</div>`}
+
+function buildModal(){
+  const l=t(),m=S.modal;let inner='';
+  if(m.type==='edit-stock'){inner=`<h3>${l.updateStock}</h3>
+    <p style="font-size:12px;color:var(--t2);margin-bottom:.9rem">${m.pName} — ${m.sName}</p>
+    <div class="fr"><label>${l.qty}</label><input type="number" id="m-qty" value="${m.cur}" min="0"></div>
+    <div class="fa"><button class="btn" id="mc">${l.cancel}</button><button class="btn bp" id="ss">${l.save}</button></div>`;}
+  else if(m.type==='add-store'){inner=`<h3>${l.addStoreName}</h3>
+    <div class="fr"><label>${l.name}</label><input type="text" id="m-name"></div>
+    <div class="fr"><label>${l.city}</label><input type="text" id="m-city"></div>
+    <div class="fa"><button class="btn" id="mc">${l.cancel}</button><button class="btn bp" id="ssto">${l.add}</button></div>`;}
+  else if(m.type==='add-product'){inner=`<h3>${l.addProductName}</h3>
+    <div class="fr"><label>${l.name}</label><input type="text" id="m-name"></div>
+    <div class="fr"><label>${l.sku}</label><input type="text" id="m-sku" placeholder="APP-007"></div>
+    <div class="fr"><label>${l.category}</label><input type="text" id="m-cat"></div>
+    <div class="fr"><label>${l.size}</label><input type="text" id="m-size"></div>
+    <div class="fr"><label>${l.minStock}</label><input type="number" id="m-min" value="15"></div>
+    <div class="fa"><button class="btn" id="mc">${l.cancel}</button><button class="btn bp" id="sp">${l.add}</button></div>`;}
+  else if(m.type==='req-prefill'||m.type==='add-request'){
+    const isStore=S.session.role==='store';
+    const sf=isStore?`<input type="hidden" id="m-store" value="${S.session.store_id}">`
+      :`<div class="fr"><label>${l.store}</label><select id="m-store">${S.stores.map(s=>`<option value="${s.id}" ${m.storeId==s.id?'selected':''}>${s.name}</option>`).join('')}</select></div>`;
+    inner=`<h3>${l.requestStock}</h3>
+    ${sf}
+    <div class="fr"><label>${l.product}</label><select id="m-product">${S.products.map(p=>`<option value="${p.id}" ${m.productId==p.id?'selected':''}>${p.name} (${p.sku})</option>`).join('')}</select></div>
+    <div class="fr"><label>${l.qty}</label><input type="number" id="m-qty" value="${m.qty||20}" min="1"></div>
+    <div class="fr"><label>${l.note}</label><textarea id="m-note"></textarea></div>
+    <div class="fa"><button class="btn" id="mc">${l.cancel}</button><button class="btn bp" id="srq">${l.submit}</button></div>`;}
+  else if(m.type==='add-account'){inner=`<h3>${l.addAccountName}</h3>
+    <div class="fr"><label>${l.username}</label><input type="text" id="m-user"></div>
+    <div class="fr"><label>${l.password}</label><input type="text" id="m-pass"></div>
+    <div class="fr"><label>${l.displayName}</label><input type="text" id="m-name"></div>
+    <div class="fr"><label>${l.role}</label><select id="m-role"><option value="store">${l.storeRole}</option><option value="admin">${l.admin}</option></select></div>
+    <div class="fr"><label>${l.linkedStore}</label><select id="m-sl"><option value="">${l.none}</option>${S.stores.map(s=>`<option value="${s.id}">${s.name}</option>`).join('')}</select></div>
+    <div class="fa"><button class="btn" id="mc">${l.cancel}</button><button class="btn bp" id="sac">${l.add}</button></div>`;}
+  return`<div class="mover" id="mo"><div class="mbox">${inner}</div></div>`;
+}
+
+function doLogin(){
+  const u=gv('lu'),p=gv('lp');
+  const acc=S.accounts.find(x=>x.username===u&&x.password===p);
+  if(acc){S.session=acc;S.loginErr='';render();}
+  else{S.loginErr=t().loginErr;S.loginUser=u;S.loginPass=p;render();}
+}
+
+function bind(){
+  document.querySelectorAll('[data-lang]').forEach(el=>el.addEventListener('click',()=>{S.lang=el.dataset.lang;localStorage.setItem('appLang',S.lang);render()}));
+  const lb=g('login-btn');if(lb){lb.addEventListener('click',doLogin);['lu','lp'].forEach(id=>{const e=g(id);if(e)e.addEventListener('keydown',ev=>{if(ev.key==='Enter')doLogin()})})}
+  document.querySelectorAll('[data-quick]').forEach(el=>el.addEventListener('click',()=>{
+    const a=S.accounts.find(x=>x.username===el.dataset.quick);
+    if(a&&g('lu')&&g('lp')){g('lu').value=a.username;g('lp').value=a.password}
+  }));
+  const lo=g('logout-btn');if(lo)lo.addEventListener('click',()=>{S.session=null;S.modal=null;render()});
+  const rb=g('refresh-btn');if(rb)rb.addEventListener('click',()=>loadAll());
+  document.querySelectorAll('[data-sub]').forEach(el=>el.addEventListener('click',()=>{S.adminSubTab=el.dataset.sub;render()}));
+  const sr=g('srch');if(sr)sr.addEventListener('input',e=>{S.search=e.target.value;render()});
+  const fs=g('fstore');if(fs)fs.addEventListener('change',e=>{S.filterStore=e.target.value;render()});
+  const fst=g('fstatus');if(fst)fst.addEventListener('change',e=>{S.filterStatus=e.target.value;render()});
+
+  document.querySelectorAll('.elk').forEach(el=>el.addEventListener('click',()=>{
+    const[sid,pid]=el.dataset.edit.split('-').map(Number);
+    const p=S.products.find(x=>x.id===pid),st=S.stores.find(x=>x.id===sid);
+    S.modal={type:'edit-stock',storeId:sid,productId:pid,sName:st?.name,pName:p?.name,cur:qty(sid,pid)};render();
+  }));
+  document.querySelectorAll('.rlk').forEach(el=>el.addEventListener('click',()=>{
+    const[sid,pid]=el.dataset.req.split('-').map(Number);
+    S.modal={type:'req-prefill',storeId:sid,productId:pid,qty:S.products.find(x=>x.id===pid)?.min_stock||20};render();
+  }));
+  document.querySelectorAll('.msent').forEach(el=>el.addEventListener('click',()=>updateReqStatus(parseInt(el.dataset.id),'sent')));
+  document.querySelectorAll('.mdone').forEach(el=>el.addEventListener('click',()=>updateReqStatus(parseInt(el.dataset.id),'done')));
+  document.querySelectorAll('.dreq').forEach(el=>el.addEventListener('click',()=>deleteReq(parseInt(el.dataset.id))));
+  document.querySelectorAll('.dstore').forEach(el=>el.addEventListener('click',()=>deleteStore(parseInt(el.dataset.id))));
+  document.querySelectorAll('.dprod').forEach(el=>el.addEventListener('click',()=>deleteProduct(parseInt(el.dataset.id))));
+  document.querySelectorAll('.dacc').forEach(el=>el.addEventListener('click',()=>deleteAccount(el.dataset.id)));
+
+  const arb=g('add-req-btn');if(arb)arb.addEventListener('click',()=>{S.modal={type:'add-request',storeId:S.stores[0]?.id,productId:S.products[0]?.id,qty:20};render()});
+  const srb=g('store-req-btn');if(srb)srb.addEventListener('click',()=>{S.modal={type:'req-prefill',storeId:S.session.store_id,productId:S.products[0]?.id,qty:20};render()});
+  const asb=g('add-store-btn');if(asb)asb.addEventListener('click',()=>{S.modal={type:'add-store'};render()});
+  const apb=g('add-prod-btn');if(apb)apb.addEventListener('click',()=>{S.modal={type:'add-product'};render()});
+  const aab=g('add-acc-btn');if(aab)aab.addEventListener('click',()=>{S.modal={type:'add-account'};render()});
+}
+
+function bindModal(){
+  const mo=g('mo');if(mo)mo.addEventListener('click',e=>{if(e.target===mo){S.modal=null;render()}});
+  const mc=g('mc');if(mc)mc.addEventListener('click',()=>{S.modal=null;render()});
+
+  const ss=g('ss');if(ss)ss.addEventListener('click',async()=>{
+    const sid=S.modal.storeId,pid=S.modal.productId,newQty=parseInt(gv('m-qty'))||0;
+    S.modal=null;render();
+    try{
+      const existing=await api(`stock?store_id=eq.${sid}&product_id=eq.${pid}`);
+      if(existing&&existing.length>0){
+        await api(`stock?store_id=eq.${sid}&product_id=eq.${pid}`,{method:'PATCH',body:JSON.stringify({quantity:newQty})});
+      }else{
+        await api('stock',{method:'POST',body:JSON.stringify({store_id:sid,product_id:pid,quantity:newQty})});
+      }
+      S.stock[sid+'-'+pid]=newQty;
+      showToast('✓ '+t().saved);render();
+    }catch(e){showToast('❌ '+t().errSave,'err')}
+  });
+
+  const ssto=g('ssto');if(ssto)ssto.addEventListener('click',async()=>{
+    const n=gv('m-name'),c=gv('m-city');
+    if(!n)return;S.modal=null;render();
+    try{
+      const[ns]=await api('stores',{method:'POST',body:JSON.stringify({name:n,city:c||n})});
+      S.stores.push(ns);
+      const uid='store'+ns.id;
+      const[na]=await api('accounts',{method:'POST',body:JSON.stringify({id:uid,username:uid,password:uid+'pass',role:'store',store_id:ns.id,display_name:n})});
+      S.accounts.push(na);
+      showToast('✓ '+t().saved);render();
+    }catch(e){showToast('❌ '+t().errSave,'err')}
+  });
+
+  const sp=g('sp');if(sp)sp.addEventListener('click',async()=>{
+    const n=gv('m-name');if(!n)return;S.modal=null;render();
+    try{
+      const[np]=await api('products',{method:'POST',body:JSON.stringify({name:n,sku:gv('m-sku')||'APP-???',category:gv('m-cat')||t().general,size:gv('m-size')||'—',min_stock:parseInt(gv('m-min'))||15})});
+      S.products.push(np);showToast('✓ '+t().saved);render();
+    }catch(e){showToast('❌ '+t().errSave,'err')}
+  });
+
+  const srq=g('srq');if(srq)srq.addEventListener('click',async()=>{
+    const sid=parseInt(g('m-store').value),pid=parseInt(g('m-product').value),qty2=parseInt(gv('m-qty'))||1,note=gv('m-note');
+    S.modal=null;render();
+    try{
+      const[nr]=await api('requests',{method:'POST',body:JSON.stringify({store_id:sid,product_id:pid,quantity:qty2,note,status:'new',created_at:today()})});
+      S.requests.unshift(nr);
+      if(S.session.role==='admin')S.adminSubTab='requests';
+      showToast('✓ '+t().saved);render();
+    }catch(e){showToast('❌ '+t().errSave,'err')}
+  });
+
+  const sac=g('sac');if(sac)sac.addEventListener('click',async()=>{
+    const u=gv('m-user'),p=gv('m-pass'),n=gv('m-name'),role=gv('m-role'),sl=gv('m-sl');
+    if(!u||!p)return;S.modal=null;render();
+    try{
+      const[na]=await api('accounts',{method:'POST',body:JSON.stringify({id:'acc_'+Date.now(),username:u,password:p,display_name:n||u,role,store_id:sl?parseInt(sl):null})});
+      S.accounts.push(na);showToast('✓ '+t().saved);render();
+    }catch(e){showToast('❌ '+e.message,'err')}
+  });
+}
+
+async function updateReqStatus(id,status){
+  try{
+    await api(`requests?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({status})});
+    const r=S.requests.find(x=>x.id===id);
+    if(r){
+      r.status=status;
+      if(status==='done'){
+        const sid=r.store_id,pid=r.product_id,addQty=r.quantity;
+        const key=sid+'-'+pid;
+        const currentQty=S.stock[key]??0;
+        const newQty=currentQty+addQty;
+        const existing=await api(`stock?store_id=eq.${sid}&product_id=eq.${pid}`);
+        if(existing&&existing.length>0){
+          await api(`stock?store_id=eq.${sid}&product_id=eq.${pid}`,{method:'PATCH',body:JSON.stringify({quantity:newQty})});
+        }else{
+          await api('stock',{method:'POST',body:JSON.stringify({store_id:sid,product_id:pid,quantity:newQty})});
+        }
+        S.stock[key]=newQty;
+        const store=S.stores.find(s=>s.id===sid);
+        const product=S.products.find(p=>p.id===pid);
+        showToast('✓ +'+addQty+' '+(product?product.name:'')+' naar '+(store?store.name:''));
+      }else{
+        showToast('✓ '+t().saved);
+      }
+    }
+    render();
+  }catch(e){showToast('❌ '+t().errSave,'err')}
+}
+async function deleteReq(id){
+  try{await api(`requests?id=eq.${id}`,{method:'DELETE',headers:{'Prefer':''}});S.requests=S.requests.filter(r=>r.id!==id);render()}catch(e){showToast('❌ '+t().errSave,'err')}
+}
+async function deleteStore(id){
+  try{
+    await api(`stores?id=eq.${id}`,{method:'DELETE',headers:{'Prefer':''}});
+    S.stores=S.stores.filter(s=>s.id!==id);
+    S.accounts=S.accounts.filter(a=>a.store_id!==id);
+    S.requests=S.requests.filter(r=>r.store_id!==id);
+    Object.keys(S.stock).forEach(k=>{if(k.startsWith(id+'-'))delete S.stock[k]});
+    showToast('✓ '+t().saved);render();
+  }catch(e){showToast('❌ '+t().errSave,'err')}
+}
+async function deleteProduct(id){
+  try{
+    await api(`products?id=eq.${id}`,{method:'DELETE',headers:{'Prefer':''}});
+    S.products=S.products.filter(p=>p.id!==id);
+    S.requests=S.requests.filter(r=>r.product_id!==id);
+    Object.keys(S.stock).forEach(k=>{if(k.endsWith('-'+id))delete S.stock[k]});
+    showToast('✓ '+t().saved);render();
+  }catch(e){showToast('❌ '+t().errSave,'err')}
+}
+async function deleteAccount(id){
+  try{await api(`accounts?id=eq.${id}`,{method:'DELETE',headers:{'Prefer':''}});S.accounts=S.accounts.filter(a=>a.id!==id);render()}catch(e){showToast('❌ '+t().errSave,'err')}
+}
+
+loadAll();
+</script>
+</body>
+</html>
