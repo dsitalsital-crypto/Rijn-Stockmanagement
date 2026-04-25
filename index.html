@@ -165,6 +165,18 @@ function render(){
   if(!S.loading&&S.modal)bindModal();
 }
 
+function renderContent(){
+  // Re-render only the table content without losing focus on search input
+  const searchVal=S.search;
+  render();
+  const sr=g('srch');
+  if(sr){
+    sr.focus();
+    sr.value=searchVal;
+    sr.setSelectionRange(searchVal.length,searchVal.length);
+  }
+}
+
 function buildLogin(){const l=t();return`<div class="lcwrap"><div class="lcbox">
   <div style="display:flex;justify-content:flex-end;margin-bottom:1rem">${langBar()}</div>
   <div style="text-align:center;margin-bottom:1.5rem">
@@ -470,9 +482,9 @@ function bind(){
   const lo=g('logout-btn');if(lo)lo.addEventListener('click',()=>{S.session=null;S.modal=null;render()});
   const rb=g('refresh-btn');if(rb)rb.addEventListener('click',()=>loadAll());
   document.querySelectorAll('[data-sub]').forEach(el=>el.addEventListener('click',()=>{S.adminSubTab=el.dataset.sub;render()}));
-  const sr=g('srch');if(sr)sr.addEventListener('input',e=>{S.search=e.target.value;render()});
-  const fs=g('fstore');if(fs)fs.addEventListener('change',e=>{S.filterStore=e.target.value;render()});
-  const fst=g('fstatus');if(fst)fst.addEventListener('change',e=>{S.filterStatus=e.target.value;render()});
+  const sr=g('srch');if(sr)sr.addEventListener('input',e=>{S.search=e.target.value;renderContent();});
+  const fs=g('fstore');if(fs)fs.addEventListener('change',e=>{S.filterStore=e.target.value;renderContent();});
+  const fst=g('fstatus');if(fst)fst.addEventListener('change',e=>{S.filterStatus=e.target.value;renderContent();});
 
   document.querySelectorAll('.elk').forEach(el=>el.addEventListener('click',()=>{
     const[sid,pid]=el.dataset.edit.split('-').map(Number);
