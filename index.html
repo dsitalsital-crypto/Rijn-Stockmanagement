@@ -621,7 +621,7 @@ function bind(){
     const inp=g('chat-input');if(!inp||!inp.value.trim())return;
     const msg=inp.value.trim();inp.value='';
     try{
-      const[nm]=await api('messages',{method:'POST',body:JSON.stringify({from_account:S.session.id,to_store_id:S.session.store_id,message:msg,is_read:false})});
+      const storeId=S.session.store_id||S.session.storeId;if(!storeId){showToast('❌ Geen winkel gekoppeld','err');return;}const[nm]=await api('messages',{method:'POST',body:JSON.stringify({from_account:S.session.id,to_store_id:storeId,message:msg,is_read:false})});
       (S.messages=S.messages||[]).push(nm);render();
       setTimeout(()=>{const el=g('chat-messages');if(el)el.scrollTop=el.scrollHeight;},50);
     }catch(e){showToast('❌ '+t().errSave,'err')}
@@ -645,7 +645,7 @@ function bind(){
   if(ascb&&S.session?.role==='admin')ascb.addEventListener('click',async()=>{
     const inp=g('chat-input');if(!inp||!inp.value.trim())return;
     const msg=inp.value.trim();inp.value='';
-    const sid=S.chatStore||S.stores[0]?.id;
+    const sid=S.chatStore||S.stores[0]?.id;if(!sid)return;
     try{
       const[nm]=await api('messages',{method:'POST',body:JSON.stringify({from_account:'admin',to_store_id:sid,message:msg,is_read:false})});
       (S.messages=S.messages||[]).push(nm);render();
@@ -656,7 +656,12 @@ function bind(){
   // Enter key for chat
   const cinp=g('chat-input');
   if(cinp)cinp.addEventListener('keydown',e=>{if(e.key==='Enter'){const btn=g('send-chat-btn');if(btn)btn.click()}});
-  document.querySelectorAll('[data-sub]').forEach(el=>el.addEventListener('click',()=>{S.adminSubTab=el.dataset.sub;render()}));
+  document.querySelectorAll('[data-sub]').forEach(el=>el.addEventListener('click',()=>{
+    S.adminSubTab=el.dataset.sub;
+    if(el.dataset.sub==='chat'&&!S.chatStore&&S.stores.length>0){S.chatStore=S.stores[0].id;}
+    render();
+    setTimeout(()=>{const el2=g('chat-messages');if(el2)el2.scrollTop=el2.scrollHeight;},50);
+  }));
   const sr=g('srch');if(sr)sr.addEventListener('input',e=>{S.search=e.target.value;renderContent();});
   const psr=g('psrch');if(psr)psr.addEventListener('input',e=>{S.productSearch=e.target.value;renderProductContent();});
   const fs=g('fstore');if(fs)fs.addEventListener('change',e=>{S.filterStore=e.target.value;renderContent();});
