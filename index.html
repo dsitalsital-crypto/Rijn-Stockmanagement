@@ -574,7 +574,7 @@ function bindModal(){
 
   const uprod=g('uprod');if(uprod)uprod.addEventListener('click',async()=>{
     const pid=S.modal.product.id;
-    const updated={name:gv('m-name'),sku:gv('m-sku'),category:gv('m-cat'),size:gv('m-size'),min_stock:parseInt(gv('m-min'))||15};
+    const minVal=gv('m-min');const updated={name:gv('m-name'),sku:gv('m-sku'),category:gv('m-cat'),size:gv('m-size'),min_stock:minVal===''?15:parseInt(minVal)};
     S.modal=null;render();
     try{
       await api(`products?id=eq.${pid}`,{method:'PATCH',body:JSON.stringify(updated)});
@@ -586,7 +586,7 @@ function bindModal(){
     const sp=g('sp');if(sp)sp.addEventListener('click',async()=>{
     const n=gv('m-name');if(!n)return;S.modal=null;render();
     try{
-      const[np]=await api('products',{method:'POST',body:JSON.stringify({name:n,sku:gv('m-sku')||'APP-???',category:gv('m-cat')||t().general,size:gv('m-size')||'—',min_stock:parseInt(gv('m-min'))||15})});
+      const[np]=await api('products',{method:'POST',body:JSON.stringify({name:n,sku:gv('m-sku')||'APP-???',category:gv('m-cat')||t().general,size:gv('m-size')||'—',min_stock:(gv('m-min')===''?15:parseInt(gv('m-min')))})});
       S.products.push(np);showToast('✓ '+t().saved);render();
     }catch(e){showToast('❌ '+t().errSave,'err')}
   });
