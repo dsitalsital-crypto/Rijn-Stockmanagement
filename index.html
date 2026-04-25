@@ -561,8 +561,8 @@ function bind(){
   document.querySelectorAll('.dprod').forEach(el=>el.addEventListener('click',()=>deleteProduct(parseInt(el.dataset.id))));
   document.querySelectorAll('.dacc').forEach(el=>el.addEventListener('click',()=>deleteAccount(el.dataset.id)));
 
-  const arb=g('add-req-btn');if(arb)arb.addEventListener('click',()=>{S.modal={type:'add-request',storeId:S.stores[0]?.id,rows:[{productId:S.products[0]?.id,qty:20}]};render()});
-  const srb=g('store-req-btn');if(srb)srb.addEventListener('click',()=>{S.modal={type:'req-prefill',storeId:S.session.store_id,rows:[{productId:S.products[0]?.id,qty:20}]};render()});
+  const arb=g('add-req-btn');if(arb)arb.addEventListener('click',()=>{S.modal={type:'add-order',storeId:S.stores[0]?.id,rows:[{productId:S.products[0]?.id,qty:20}]};render()});
+  const srb=g('store-req-btn');if(srb)srb.addEventListener('click',()=>{S.modal={type:'add-order',storeId:S.session.store_id,rows:[{productId:S.products[0]?.id,qty:20}]};render()});
   const asb=g('add-store-btn');if(asb)asb.addEventListener('click',()=>{S.modal={type:'add-store'};render()});
   const apb=g('add-prod-btn');if(apb)apb.addEventListener('click',()=>{S.modal={type:'add-product'};render()});
   const aab=g('add-acc-btn');if(aab)aab.addEventListener('click',()=>{S.modal={type:'add-account'};render()});
