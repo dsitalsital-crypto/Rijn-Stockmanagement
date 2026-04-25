@@ -351,7 +351,7 @@ function bProducts(){
       <td style="font-weight:500">${p.name}</td><td style="color:var(--t2)">${p.sku}</td>
       <td>${p.category}</td><td>${p.size}</td><td>${p.min_stock}</td>
       <td>${S.stores.reduce((a,s)=>a+qty(s.id,p.id),0)}</td>
-      <td><button class="btn bd bsm dprod" data-id="${p.id}">${l.remove}</button></td>
+      <td style="display:flex;gap:4px"><button class="btn bsm eprod" data-id="${p.id}">${l.edit}</button><button class="btn bd bsm dprod" data-id="${p.id}">${l.remove}</button></td>
     </tr>`).join('')}</tbody>
   </table></div>
 </div>`}
@@ -438,6 +438,13 @@ function buildModal(){
     <div class="fr"><label>${l.name}</label><input type="text" id="m-name"></div>
     <div class="fr"><label>${l.city}</label><input type="text" id="m-city"></div>
     <div class="fa"><button class="btn" id="mc">${l.cancel}</button><button class="btn bp" id="ssto">${l.add}</button></div>`;}
+  else if(m.type==='edit-product'){inner=`<h3>${l.edit} product</h3>
+    <div class="fr"><label>${l.name}</label><input type="text" id="m-name" value="${m.product.name}"></div>
+    <div class="fr"><label>${l.sku}</label><input type="text" id="m-sku" value="${m.product.sku}"></div>
+    <div class="fr"><label>${l.category}</label><input type="text" id="m-cat" value="${m.product.category}"></div>
+    <div class="fr"><label>${l.size}</label><input type="text" id="m-size" value="${m.product.size}"></div>
+    <div class="fr"><label>${l.minStock}</label><input type="number" id="m-min" value="${m.product.min_stock}"></div>
+    <div class="fa"><button class="btn" id="mc">${l.cancel}</button><button class="btn bp" id="uprod">${l.save}</button></div>`;}
   else if(m.type==='add-product'){inner=`<h3>${l.addProductName}</h3>
     <div class="fr"><label>${l.name}</label><input type="text" id="m-name"></div>
     <div class="fr"><label>${l.sku}</label><input type="text" id="m-sku" placeholder="APP-007"></div>
@@ -499,6 +506,10 @@ function bind(){
   document.querySelectorAll('.mdone').forEach(el=>el.addEventListener('click',()=>updateReqStatus(parseInt(el.dataset.id),'done')));
   document.querySelectorAll('.dreq').forEach(el=>el.addEventListener('click',()=>deleteReq(parseInt(el.dataset.id))));
   document.querySelectorAll('.dstore').forEach(el=>el.addEventListener('click',()=>deleteStore(parseInt(el.dataset.id))));
+  document.querySelectorAll('.eprod').forEach(el=>el.addEventListener('click',()=>{
+    const p=S.products.find(x=>x.id===parseInt(el.dataset.id));
+    if(p){S.modal={type:'edit-product',product:p};render();}
+  }));
   document.querySelectorAll('.dprod').forEach(el=>el.addEventListener('click',()=>deleteProduct(parseInt(el.dataset.id))));
   document.querySelectorAll('.dacc').forEach(el=>el.addEventListener('click',()=>deleteAccount(el.dataset.id)));
 
@@ -541,7 +552,18 @@ function bindModal(){
     }catch(e){showToast('❌ '+t().errSave,'err')}
   });
 
-  const sp=g('sp');if(sp)sp.addEventListener('click',async()=>{
+  const uprod=g('uprod');if(uprod)uprod.addEventListener('click',async()=>{
+    const pid=S.modal.product.id;
+    const updated={name:gv('m-name'),sku:gv('m-sku'),category:gv('m-cat'),size:gv('m-size'),min_stock:parseInt(gv('m-min'))||15};
+    S.modal=null;render();
+    try{
+      await api(`products?id=eq.${pid}`,{method:'PATCH',body:JSON.stringify(updated)});
+      const p=S.products.find(x=>x.id===pid);
+      if(p)Object.assign(p,updated);
+      showToast('✓ '+t().saved);render();
+    }catch(e){showToast('❌ '+t().errSave,'err')}
+  });
+    const sp=g('sp');if(sp)sp.addEventListener('click',async()=>{
     const n=gv('m-name');if(!n)return;S.modal=null;render();
     try{
       const[np]=await api('products',{method:'POST',body:JSON.stringify({name:n,sku:gv('m-sku')||'APP-???',category:gv('m-cat')||t().general,size:gv('m-size')||'—',min_stock:parseInt(gv('m-min'))||15})});
