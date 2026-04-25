@@ -325,6 +325,7 @@ function bRequests(){
         <td>${rbadge(r.status)}</td>
         <td style="font-size:11px;color:var(--t2)">${r.note||'—'}</td>
         <td><div style="display:flex;gap:4px;flex-wrap:wrap">
+          ${r.status!=='done'?`<button class="btn bsm ereq" data-id="${r.id}">${l.edit}</button>`:''}
           ${r.status==='new'?`<button class="btn bsm msent" data-id="${r.id}">${l.markSent}</button>`:''}
           ${r.status==='sent'?`<button class="btn bsm mdone" data-id="${r.id}" style="color:${GREEN}">${l.markDone}</button>`:''}
           <button class="btn bd bsm dreq" data-id="${r.id}">${l.del}</button>
