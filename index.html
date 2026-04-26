@@ -182,16 +182,16 @@ const gv=id=>{const e=g(id);return e?e.value.trim():''};
 const today=()=>new Date().toISOString().slice(0,10);
 const barCol=(q,min)=>min===0?GREEN:q===0?RED:q<min?AMBER:GREEN;
 
-async function api(path,opts={}){
+async function api(path,opts={},notify=null){
   const url=SB+'/rest/v1/'+path;
   const isDelete=opts.method==='DELETE';
   const headers={'Content-Type':'application/json'};
   if(!isDelete)headers['Prefer']='return=representation';
-  // Send role info so Worker can enforce permissions
   if(S.session){
     headers['X-User-Role']=S.session.role||'guest';
     if(S.session.store_id)headers['X-User-Store']=String(S.session.store_id);
   }
+  if(notify)headers['X-Notify']=JSON.stringify(notify);
   const res=await fetch(url,{...opts,headers});
   if(!res.ok){const e=await res.text();throw new Error(e)}
   const txt=await res.text();
@@ -1592,7 +1592,10 @@ function bindModal(){
           showToast('✓ Samengevoegd met bestaande order!');render();
         }else{
           // Create new order
-          const[newOrder]=await api('orders',{method:'POST',body:JSON.stringify({store_id:sid,note,status:'new',created_at:today()})});
+          const store=S.stores.find(s=>s.id===sid);
+          const orderNotify={type:'order',storeName:store?store.name:'Winkel',orderNum:'????',items:rows.map(r=>{const p=S.products.find(x=>x.id===r.product_id);return{name:p?p.name:'?',qty:r.quantity}}),note};
+          const[newOrder]=await api('orders',{method:'POST',body:JSON.stringify({store_id:sid,note,status:'new',created_at:today()})},orderNotify);
+          if(newOrder)orderNotify.orderNum=String(newOrder.order_number||newOrder.id).padStart(4,'0');
           const newItems=[];
           for(const r of rows){const[item]=await api('order_items',{method:'POST',body:JSON.stringify({order_id:newOrder.id,...r})});newItems.push(item)}
           S.orders.unshift(newOrder);S.orderItems.push(...newItems);
@@ -1687,7 +1690,9 @@ function bindModal(){
     if(!subject||!desc)return;
     S.modal=null;render();
     try{
-      const[nc]=await api('complaints',{method:'POST',body:JSON.stringify({store_id:S.session.store_id,type,subject,description:desc,status:'open',created_at:new Date().toISOString()})});
+      const cStore=S.stores.find(s=>s.id===S.session.store_id);
+      const complaintNotify={type:'complaint',storeName:cStore?cStore.name:'Winkel',subject,description:desc,complaintType:type};
+      const[nc]=await api('complaints',{method:'POST',body:JSON.stringify({store_id:S.session.store_id,type,subject,description:desc,status:'open',created_at:new Date().toISOString()})},complaintNotify);
       (S.complaints=S.complaints||[]).unshift(nc);
       showToast('✓ Klacht ingediend');render();
     }catch(e){showToast('❌ Fout bij opslaan','err')}
