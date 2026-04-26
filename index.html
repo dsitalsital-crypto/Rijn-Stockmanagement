@@ -31,7 +31,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#D4537E;box-sh
 .badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:500}
 .bok{background:#EAF3DE;color:#3B6D11}.blow{background:#FAEEDA;color:#854F0B}.bout{background:#FCEBEB;color:#A32D2D}
 .bnew{background:#EEEDFE;color:#3C3489}.bsent{background:#E1F5EE;color:#085041}.bdone{background:#EAF3DE;color:#27500A}
-.badm{background:#FBEAF0;color:#72243E}.bstr{background:#E6F1FB;color:#0C447C}
+.badm{background:#FBEAF0;color:#72243E}.bstr{background:#E6F1FB;color:#0C447C}.bmgr{background:#EEF6E8;color:#2E6B0A}
 .met{background:var(--bg2);border-radius:var(--r1);padding:.8rem 1rem}
 .met-l{font-size:11px;color:var(--t2);margin-bottom:3px}.met-v{font-size:20px;font-weight:500}
 .panel{background:var(--bg1);border:0.5px solid var(--b3);border-radius:var(--r2);overflow:hidden;margin-bottom:.9rem}
@@ -93,7 +93,7 @@ const TR={
     noOrders:'Nog geen orders',markSent:'Verzonden',markDone:'Klaar',del:'Del',addStore:'+ Winkel toevoegen',
     city:'Stad',name:'Naam',remove:'Verwijderen',addProduct:'+ Product toevoegen',minStock:'Min. voorraad',
     addAccount:'+ Account toevoegen',dispName:'Weergavenaam',role:'Rol',linkedStore:'Gekoppelde winkel',
-    none:'— geen —',admin:'Admin',storeRole:'Winkel',cancel:'Annuleren',save:'Opslaan',add:'Toevoegen',
+    none:'— geen —',admin:'Admin',storeRole:'Winkel',manager:'Manager',cancel:'Annuleren',save:'Opslaan',add:'Toevoegen',
     submit:'Indienen',updateStock:'Voorraad bijwerken',addOrder:'Nieuwe order',editOrder:'Order bewerken',
     myStock:'Mijn voorraad',myOrders:'Mijn orders',attention:'Aandacht nodig',openReqsS:'Open orders',
     inStock:'Op voorraad',noMyOrders:'Nog geen orders',noProducts:'Geen producten',new:'Nieuw',
@@ -115,7 +115,7 @@ const TR={
     noOrders:'No orders yet',markSent:'Mark sent',markDone:'Mark done',del:'Del',addStore:'+ Add store',
     city:'City',name:'Name',remove:'Remove',addProduct:'+ Add product',minStock:'Min. stock',
     addAccount:'+ Add account',dispName:'Display name',role:'Role',linkedStore:'Linked store',
-    none:'— none —',admin:'Admin',storeRole:'Store',cancel:'Cancel',save:'Save',add:'Add',
+    none:'— none —',admin:'Admin',storeRole:'Store',manager:'Manager',cancel:'Cancel',save:'Save',add:'Add',
     submit:'Submit',updateStock:'Update stock',addOrder:'New order',editOrder:'Edit order',
     myStock:'My stock',myOrders:'My orders',attention:'Needs attention',openReqsS:'Open orders',
     inStock:'In stock',noMyOrders:'No orders yet',noProducts:'No products found',new:'New',
@@ -137,7 +137,7 @@ const TR={
     noOrders:'Henüz sipariş yok',markSent:'Gönderildi',markDone:'Tamamlandı',del:'Sil',addStore:'+ Mağaza ekle',
     city:'Şehir',name:'Ad',remove:'Kaldır',addProduct:'+ Ürün ekle',minStock:'Min. stok',
     addAccount:'+ Hesap ekle',dispName:'Görünen ad',role:'Rol',linkedStore:'Bağlı mağaza',
-    none:'— yok —',admin:'Admin',storeRole:'Mağaza',cancel:'İptal',save:'Kaydet',add:'Ekle',
+    none:'— yok —',admin:'Admin',storeRole:'Mağaza',manager:'Yönetici',cancel:'İptal',save:'Kaydet',add:'Ekle',
     submit:'Gönder',updateStock:'Stoku güncelle',addOrder:'Yeni sipariş',editOrder:'Siparişi düzenle',
     myStock:'Stoğum',myOrders:'Siparişlerim',attention:'Dikkat gerekiyor',openReqsS:'Açık siparişler',
     inStock:'Stokta var',noMyOrders:'Henüz sipariş yok',noProducts:'Ürün bulunamadı',new:'Yeni',
@@ -261,7 +261,7 @@ function buildLogin(){const l=t();return`<div class="lcwrap"><div class="lcbox">
 
 </div></div>`}
 
-function buildApp(){return S.session.role==='admin'?buildAdmin():buildStoreView()}
+function buildApp(){return(S.session.role==='admin'||S.session.role==='manager')?buildAdmin():buildStoreView()}
 
 function buildAdmin(){
   const l=t(),sub=S.adminSubTab,al=allLow()+allOut(),or=openReqs();
@@ -273,8 +273,8 @@ function buildAdmin(){
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="9" width="16" height="10" rx="2" stroke="#D4537E" stroke-width="1.5"/><path d="M6 9V6a4 4 0 018 0v3" stroke="#D4537E" stroke-width="1.5" stroke-linecap="round"/></svg>
       </div>
       <div>
-        <div style="font-size:17px;font-weight:500">${l.app} <span class="badge badm" style="margin-left:5px;vertical-align:middle">${l.admin}</span></div>
-        <div style="font-size:12px;color:var(--t2)">${l.fullAccess} ${S.stores.length} ${l.stores2}</div>
+        <div style="font-size:17px;font-weight:500">${l.app} ${S.session.role==='manager'?`<span class="badge bmgr" style="margin-left:5px;vertical-align:middle">${t().manager}</span>`:`<span class="badge badm" style="margin-left:5px;vertical-align:middle">${l.admin}</span>`}</div>
+        <div style="font-size:12px;color:var(--t2)">${S.session.role==='manager'?t().manager:l.fullAccess+' '+S.stores.length+' '+l.stores2}</div>
       </div>
     </div>
     <div style="display:flex;gap:8px;align-items:center">${langBar()}<button class="btn bsm" id="refresh-btn">↻</button><button class="btn bsm" id="logout-btn">${l.out}</button></div>
@@ -293,7 +293,7 @@ function buildAdmin(){
     <button class="tab ${sub==='orders'?'on':''}" data-sub="orders">${l.orders}${or?` <span style="background:#3C3489;color:#fff;border-radius:10px;padding:0 5px;font-size:10px;margin-left:3px">${or}</span>`:''}${unread?` <span style="background:#D4537E;color:#fff;border-radius:10px;padding:0 5px;font-size:10px;margin-left:3px">💬${unread}</span>`:''}</button>
     <button class="tab ${sub==='stores'?'on':''}" data-sub="stores">${l.stores}</button>
     <button class="tab ${sub==='products'?'on':''}" data-sub="products">${l.products}</button>
-    <button class="tab ${sub==='accounts'?'on':''}" data-sub="accounts">${l.accounts}</button>
+    ${S.session.role==='admin'?`<button class="tab ${sub==='accounts'?'on':''}" data-sub="accounts">${l.accounts}</button>`:''}
     <button class="tab ${sub==='complaints'?'on':''}" data-sub="complaints">📋 Klachten${(S.complaints||[]).filter(c=>c.status==='open').length?` <span style="background:#D4537E;color:#fff;border-radius:10px;padding:0 5px;font-size:10px;margin-left:3px">${(S.complaints||[]).filter(c=>c.status==='open').length}</span>`:''}</button>
   </div>
   ${sub==='stock'?bStock():sub==='alerts'?bAlerts():sub==='orders'?bOrders():sub==='stores'?bStores():sub==='products'?bProducts():sub==='complaints'?bComplaints():bAccounts()}
@@ -518,7 +518,7 @@ function bProducts(){
       <td style="font-weight:500">${p.name}</td><td style="color:var(--t2)">${p.sku}</td>
       <td>${p.category}</td><td>${p.size}</td><td>${p.min_stock}</td>
       <td>${S.stores.reduce((a,s)=>a+qty(s.id,p.id),0)}</td>
-      <td style="display:flex;gap:4px"><button class="btn bsm eprod" data-id="${p.id}">${l.edit}</button><button class="btn bd bsm dprod" data-id="${p.id}">${l.remove}</button></td>
+      <td style="display:flex;gap:4px"><button class="btn bsm eprod" data-id="${p.id}">${l.edit}</button>${S.session.role==='admin'?`<button class="btn bd bsm dprod" data-id="${p.id}">${l.remove}</button>`:''}</td>
     </tr>`).join(''):`<tr><td colspan="7" style="text-align:center;padding:1.5rem;color:var(--t3)">${l.noProducts}</td></tr>`}
     </tbody>
   </table></div>
@@ -534,7 +534,7 @@ function bAccounts(){
     <tbody>${S.accounts.map(a=>`<tr>
       <td style="font-weight:500">${a.username}</td><td>${a.display_name}</td>
       <td style="font-family:monospace;font-size:11px;color:var(--t2)">${a.password}</td>
-      <td>${a.role==='admin'?`<span class="badge badm">${l.admin}</span>`:`<span class="badge bstr">${l.storeRole}</span>`}</td>
+      <td>${a.role==='admin'?`<span class="badge badm">${l.admin}</span>`:a.role==='manager'?`<span class="badge bmgr">${t().manager}</span>`:`<span class="badge bstr">${l.storeRole}</span>`}</td>
       <td style="display:flex;gap:4px">${`<button class="btn bsm eacc" data-id="${a.id}">${l.edit}</button>`}${a.id!=='admin'?`<button class="btn bd bsm dacc" data-id="${a.id}">${l.remove}</button>`:''}</td>
     </tr>`).join('')}</tbody>
   </table></div>
@@ -771,7 +771,7 @@ function buildModal(){
     <div class="fr"><label>${l.user}</label><input type="text" id="m-user"></div>
     <div class="fr"><label>${l.pass}</label><input type="text" id="m-pass"></div>
     <div class="fr"><label>${l.dispName}</label><input type="text" id="m-name"></div>
-    <div class="fr"><label>${l.role}</label><select id="m-role"><option value="store">${l.storeRole}</option><option value="admin">${l.admin}</option></select></div>
+    <div class="fr"><label>${l.role}</label><select id="m-role"><option value="store">${l.storeRole}</option><option value="manager">${t().manager}</option><option value="admin">${l.admin}</option></select></div>
     <div class="fr"><label>${l.linkedStore}</label><select id="m-sl"><option value="">${l.none}</option>${S.stores.map(s=>`<option value="${s.id}">${s.name}</option>`).join('')}</select></div>
     <div class="fa"><button class="btn" id="mc">${l.cancel}</button><button class="btn bp" id="sac">${l.add}</button></div>`;}
 
