@@ -576,7 +576,10 @@ function buildStoreView(){
           <td><div class="barcell"><span style="min-width:28px;font-weight:500;color:${p.min_stock>0&&q===0?RED:p.min_stock>0&&q<p.min_stock?AMBER:'var(--t1)'}">${q}</span><div class="barbg"><div class="barfill" style="width:${pct}%;background:${c}"></div></div></div></td>
           <td style="color:var(--t2)">${p.min_stock}</td>
           <td>${sbadge(q,p.min_stock)}</td>
-          <td><button class="btn bsm rlk" data-req="${acc.store_id}-${p.id}">${l.reqBtn}</button></td>
+          <td style="display:flex;gap:4px">
+            <button class="btn bsm elk2" data-edit="${acc.store_id}-${p.id}">✏️</button>
+            <button class="btn bsm rlk" data-req="${acc.store_id}-${p.id}">${l.reqBtn}</button>
+          </td>
         </tr>`;
       }).join('')}</tbody>
     </table></div>
@@ -634,6 +637,7 @@ function buildModal(){
 
   if(m.type==='edit-stock'){inner=`<h3>${l.updateStock}</h3>
     <p style="font-size:12px;color:var(--t2);margin-bottom:.9rem">${m.pName} — ${m.sName}</p>
+    ${S.session.role!=='admin'?`<div style="background:#FAEEDA;border:0.5px solid #FAC775;border-radius:var(--r1);padding:8px 10px;font-size:11px;color:#854F0B;margin-bottom:10px">⚠️ Pas de voorraad alleen aan als je stock hebt verbruikt of gecorrigeerd.</div>`:''}
     <div class="fr"><label>${l.qty}</label><input type="number" id="m-qty" value="${m.cur}" min="0"></div>
     <div class="fa"><button class="btn" id="mc">${l.cancel}</button><button class="btn bp" id="ss">${l.save}</button></div>`;}
 
@@ -799,6 +803,14 @@ function bind(){
   document.querySelectorAll('.elk').forEach(el=>el.addEventListener('click',()=>{
     const[sid,pid]=el.dataset.edit.split('-').map(Number);
     const p=S.products.find(x=>x.id===pid),st=S.stores.find(x=>x.id===sid);
+    S.modal={type:'edit-stock',storeId:sid,productId:pid,sName:st?.name,pName:p?.name,cur:qty(sid,pid)};render();
+  }));
+  // Store users can also edit their own stock
+  document.querySelectorAll('.elk2').forEach(el=>el.addEventListener('click',()=>{
+    const[sid,pid]=el.dataset.edit.split('-').map(Number);
+    const p=S.products.find(x=>x.id===pid),st=S.stores.find(x=>x.id===sid);
+    // Only allow editing own store
+    if(S.session.role!=='admin'&&S.session.store_id!==sid){showToast('Geen toegang','err');return;}
     S.modal={type:'edit-stock',storeId:sid,productId:pid,sName:st?.name,pName:p?.name,cur:qty(sid,pid)};render();
   }));
   document.querySelectorAll('.rlk').forEach(el=>el.addEventListener('click',()=>{
