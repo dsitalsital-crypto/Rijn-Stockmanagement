@@ -252,16 +252,7 @@ function buildLogin(){const l=t();return`<div class="lcwrap"><div class="lcbox">
   <div class="fr"><label>${l.user}</label><input type="text" id="lu" placeholder="${l.userPh}" value="${S.loginUser}"></div>
   <div class="fr"><label>${l.pass}</label><input type="password" id="lp" value="${S.loginPass}"></div>
   <button class="btn bp" style="width:100%;justify-content:center;height:38px;font-size:13px;margin-top:4px" id="login-btn">${l.signIn}</button>
-  <div style="margin-top:1.3rem;border-top:0.5px solid var(--b3);padding-top:1rem">
-    <div style="font-size:11px;color:var(--t2);margin-bottom:7px;font-weight:500">${l.quick}:</div>
-    <div style="display:flex;flex-wrap:wrap;gap:6px">
-      <button class="btn bsm" data-quick="admin">Admin</button>
-      <button class="btn bsm" data-quick="store1">Rotterdam</button>
-      <button class="btn bsm" data-quick="store7">Den Haag</button>
-      <button class="btn bsm" data-quick="store12">Enschede</button>
-    </div>
-  </div>
-  <div style="margin-top:1rem;font-size:11px;color:var(--t3);text-align:center">${l.hint}</div>
+
 </div></div>`}
 
 function buildApp(){return S.session.role==='admin'?buildAdmin():buildStoreView()}
@@ -486,7 +477,7 @@ function bAccounts(){
       <td style="font-weight:500">${a.username}</td><td>${a.display_name}</td>
       <td style="font-family:monospace;font-size:11px;color:var(--t2)">${a.password}</td>
       <td>${a.role==='admin'?`<span class="badge badm">${l.admin}</span>`:`<span class="badge bstr">${l.storeRole}</span>`}</td>
-      <td>${a.id!=='admin'?`<button class="btn bd bsm dacc" data-id="${a.id}">${l.remove}</button>`:''}</td>
+      <td style="display:flex;gap:4px">${`<button class="btn bsm eacc" data-id="${a.id}">${l.edit}</button>`}${a.id!=='admin'?`<button class="btn bd bsm dacc" data-id="${a.id}">${l.remove}</button>`:''}</td>
     </tr>`).join('')}</tbody>
   </table></div>
 </div>`}
@@ -628,6 +619,11 @@ function buildModal(){
     <div class="fr"><label>${l.minStock}</label><input type="number" id="m-min" value="0" min="0"></div>
     <div class="fa"><button class="btn" id="mc">${l.cancel}</button><button class="btn bp" id="sp">${l.add}</button></div>`;}
 
+  else if(m.type==='edit-account'){inner=`<h3>${l.edit} account</h3>
+    <p style="font-size:12px;color:var(--t2);margin-bottom:.9rem">${m.a.username} — ${m.a.display_name}</p>
+    <div class="fr"><label>${l.dispName}</label><input type="text" id="m-name" value="${m.a.display_name}"></div>
+    <div class="fr"><label>${l.pass} (nieuw)</label><input type="text" id="m-pass" placeholder="Laat leeg om niet te wijzigen"></div>
+    <div class="fa"><button class="btn" id="mc">${l.cancel}</button><button class="btn bp" id="uacc">${l.save}</button></div>`;}
   else if(m.type==='add-account'){inner=`<h3>${l.addAccount}</h3>
     <div class="fr"><label>${l.user}</label><input type="text" id="m-user"></div>
     <div class="fr"><label>${l.pass}</label><input type="text" id="m-pass"></div>
@@ -649,7 +645,7 @@ function doLogin(){
 function bind(){
   document.querySelectorAll('[data-lang]').forEach(el=>el.addEventListener('click',()=>{S.lang=el.dataset.lang;localStorage.setItem('appLang',S.lang);render()}));
   const lb=g('login-btn');if(lb){lb.addEventListener('click',doLogin);['lu','lp'].forEach(id=>{const e=g(id);if(e)e.addEventListener('keydown',ev=>{if(ev.key==='Enter')doLogin()})})}
-  document.querySelectorAll('[data-quick]').forEach(el=>el.addEventListener('click',()=>{const a=S.accounts.find(x=>x.username===el.dataset.quick);if(a&&g('lu')&&g('lp')){g('lu').value=a.username;g('lp').value=a.password}}));
+
   const lo=g('logout-btn');if(lo)lo.addEventListener('click',()=>{S.session=null;S.modal=null;clearSession();render()});
   const rb=g('refresh-btn');if(rb)rb.addEventListener('click',()=>loadAll());
   document.querySelectorAll('[data-sub]').forEach(el=>el.addEventListener('click',()=>{S.adminSubTab=el.dataset.sub;render()}));
@@ -681,6 +677,10 @@ function bind(){
   document.querySelectorAll('.dorder').forEach(el=>el.addEventListener('click',()=>deleteOrder(parseInt(el.dataset.id))));
   document.querySelectorAll('.dstore').forEach(el=>el.addEventListener('click',()=>deleteStore(parseInt(el.dataset.id))));
   document.querySelectorAll('.dprod').forEach(el=>el.addEventListener('click',()=>deleteProduct(parseInt(el.dataset.id))));
+  document.querySelectorAll('.eacc').forEach(el=>el.addEventListener('click',()=>{
+    const a=S.accounts.find(x=>x.id===el.dataset.id);
+    if(a){S.modal={type:'edit-account',a};render();}
+  }));
   document.querySelectorAll('.dacc').forEach(el=>el.addEventListener('click',()=>deleteAccount(el.dataset.id)));
   document.querySelectorAll('.eprod').forEach(el=>el.addEventListener('click',()=>{const p=S.products.find(x=>x.id===parseInt(el.dataset.id));if(p){S.modal={type:'edit-product',p};render();}}));
   const aob=g('add-order-btn');if(aob)aob.addEventListener('click',()=>{S.modal={type:'add-order',storeId:S.stores[0]?.id,rows:[{productId:S.products[0]?.id,qty:1}]};render()});
@@ -792,6 +792,20 @@ function bindModal(){
     try{const[np]=await api('products',{method:'POST',body:JSON.stringify({name:n,sku:gv('m-sku')||'APP-???',category:gv('m-cat')||t().general,size:gv('m-size')||'—',min_stock:isNaN(minVal)?0:minVal})});S.products.push(np);showToast('✓ '+t().saved);render()}catch(e){showToast('❌ '+t().errSave,'err')}
   });
 
+  const uacc=g('uacc');if(uacc)uacc.addEventListener('click',async()=>{
+    const aid=S.modal.a.id;
+    const newName=gv('m-name');
+    const newPass=gv('m-pass');
+    const updated={display_name:newName||S.modal.a.display_name};
+    if(newPass)updated.password=newPass;
+    S.modal=null;render();
+    try{
+      await api(`accounts?id=eq.${aid}`,{method:'PATCH',body:JSON.stringify(updated)});
+      const a=S.accounts.find(x=>x.id===aid);
+      if(a){a.display_name=updated.display_name;if(newPass)a.password=newPass;}
+      showToast('✓ '+t().saved);render();
+    }catch(e){showToast('❌ '+t().errSave,'err')}
+  });
   const sac=g('sac');if(sac)sac.addEventListener('click',async()=>{
     const u=gv('m-user'),p=gv('m-pass'),n=gv('m-name'),role=gv('m-role'),sl=gv('m-sl');
     if(!u||!p)return;S.modal=null;render();
