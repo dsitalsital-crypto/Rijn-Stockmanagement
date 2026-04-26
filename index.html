@@ -169,7 +169,7 @@ const S={
   session:getSavedSession(),modal:null,search:'',productSearch:'',filterStore:'all',filterStatus:'all',
   adminSubTab:'stock',loginErr:'',loginUser:'',loginPass:'',
   lang:localStorage.getItem('appLang')||'nl',
-  stores:[],products:[],stock:{},orders:[],orderItems:[],accounts:[],messages:[],
+  stores:[],products:[],stock:{},orders:[],orderItems:[],accounts:[],messages:[],complaints:[],orderHistory:[],
   loading:true,
 };
 
@@ -194,15 +194,19 @@ async function api(path,opts={}){
 async function loadAll(){
   S.loading=true;render();
   try{
-    const[stores,products,stockRows,orders,orderItems,accounts,messages]=await Promise.all([
+    const[stores,products,stockRows,orders,orderItems,accounts,messages,complaints,orderHistory]=await Promise.all([
       api('stores?order=id'),api('products?order=name'),api('stock?select=*'),
       api('orders?order=id.desc'),api('order_items?select=*'),
       api('accounts?order=username'),api('messages?order=created_at'),
+      api('complaints?order=id.desc'),
+      api('order_history?order=created_at.desc'),
     ]);
     S.stores=stores||[];S.products=products||[];
     S.stock={};(stockRows||[]).forEach(r=>{S.stock[r.store_id+'-'+r.product_id]=r.quantity});
     S.orders=orders||[];S.orderItems=orderItems||[];
     S.accounts=accounts||[];S.messages=messages||[];
+    S.complaints=complaints||[];
+    S.orderHistory=orderHistory||[];
   }catch(e){showToast('❌ '+e.message,'err')}
   S.loading=false;render();
 }
@@ -288,8 +292,28 @@ function buildAdmin(){
     <button class="tab ${sub==='stores'?'on':''}" data-sub="stores">${l.stores}</button>
     <button class="tab ${sub==='products'?'on':''}" data-sub="products">${l.products}</button>
     <button class="tab ${sub==='accounts'?'on':''}" data-sub="accounts">${l.accounts}</button>
+    <button class="tab ${sub==='complaints'?'on':''}" data-sub="complaints">📋 Klachten${(S.complaints||[]).filter(c=>c.status==='open').length?` <span style="background:#D4537E;color:#fff;border-radius:10px;padding:0 5px;font-size:10px;margin-left:3px">${(S.complaints||[]).filter(c=>c.status==='open').length}</span>":''}</button>
   </div>
-  ${sub==='stock'?bStock():sub==='alerts'?bAlerts():sub==='orders'?bOrders():sub==='stores'?bStores():sub==='products'?bProducts():bAccounts()}
+  ${sub==='stock'?bStock():sub==='alerts'?bAlerts():sub==='orders'?bOrders():sub==='stores'?bStores():sub==='products'?bProducts():sub==='complaints'?bComplaints():bAccounts()}
+  <div class="panel">
+    <div class="ph">
+      <span class="pht">📋 Klachten</span>
+      <button class="btn bp bsm" id="add-complaint-btn">+ Klacht indienen</button>
+    </div>
+    <div class="tw"><table>
+      <colgroup><col style="width:88px"><col style="width:90px"><col style="width:150px"><col style="width:180px"><col style="width:70px"><col style="width:150px"></colgroup>
+      <thead><tr><th>Datum</th><th>Type</th><th>Onderwerp</th><th>Omschrijving</th><th>Status</th><th>Reactie admin</th></tr></thead>
+      <tbody>${myComplaints.length?myComplaints.map(c=>`<tr>
+        <td style="color:var(--t2)">${c.created_at?new Date(c.created_at).toLocaleDateString('nl-NL'):''}</td>
+        <td>${c.type==='website'?'🖥️ Website':c.type==='goods'?'📦 Goederen':'📝 Algemeen'}</td>
+        <td style="font-weight:500">${c.subject}</td>
+        <td style="font-size:11px;color:var(--t2)">${c.description}</td>
+        <td>${c.status==='open'?'<span class="badge bnew">Open</span>':c.status==='in_progress'?'<span class="badge bsent">In behandeling</span>':'<span class="badge bdone">Opgelost</span>'}</td>
+        <td style="font-size:11px;color:var(--t2)">${c.admin_response||'—'}</td>
+      </tr>`).join(''):`<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--t3)">Geen klachten ingediend</td></tr>`}
+      </tbody>
+    </table></div>
+  </div>
   ${S.modal?buildModal():''}
 </div>`}
 
@@ -355,15 +379,17 @@ function bOrders(){
   return`<div class="panel">
   <div class="ph"><span class="pht">${l.orders}</span><button class="btn bp bsm" id="add-order-btn">${l.newOrder}</button></div>
   <div class="tw"><table>
-    <colgroup><col style="width:85px"><col style="width:130px"><col style="width:68px"><col style="width:200px"><col style="width:120px"><col style="width:155px"></colgroup>
-    <thead><tr><th>${l.date}</th><th>${l.store}</th><th>${l.status}</th><th>${l.products}</th><th>${l.note}</th><th>${l.actions}</th></tr></thead>
+    <colgroup><col style="width:55px"><col style="width:85px"><col style="width:120px"><col style="width:68px"><col style="width:180px"><col style="width:110px"><col style="width:155px"></colgroup>
+    <thead><tr><th>#</th><th>${l.date}</th><th>${l.store}</th><th>${l.status}</th><th>${l.products}</th><th>${l.note}</th><th>${l.actions}</th></tr></thead>
     <tbody>${S.orders.length?S.orders.map(o=>{
       const st=S.stores.find(x=>x.id===o.store_id);
       const items=(S.orderItems||[]).filter(i=>i.order_id===o.id);
       const itemsHtml=items.map(i=>{const p=S.products.find(x=>x.id===i.product_id);return p?`${p.name} ×${i.quantity}`:''}).filter(Boolean).join(', ')||'—';
       const unread=(S.messages||[]).filter(m=>m.order_id===o.id&&m.from_account!=='admin'&&!m.is_read).length;
       const msgCount=(S.messages||[]).filter(m=>m.order_id===o.id).length;
+      const orderNum=String(o.order_number||o.id).padStart(4,'0');
       return`<tr>
+        <td style="font-weight:500;color:#D4537E">#${orderNum}</td>
         <td style="color:var(--t2)">${o.created_at}</td>
         <td style="font-weight:500">${st?st.name:'—'}</td>
         <td>${rbadge(o.status)}</td>
@@ -371,6 +397,7 @@ function bOrders(){
         <td style="font-size:11px;color:var(--t2)">${o.note||'—'}</td>
         <td><div style="display:flex;gap:4px;flex-wrap:wrap">
           ${o.status!=='done'&&S.session.role==='admin'?`<button class="btn bsm eorder" data-id="${o.id}">${l.edit}</button>`:''}
+          <button class="btn bsm hist-order" data-id="${o.id}">📋</button>
           <button class="btn bsm chat-order" data-id="${o.id}">💬${unread?` <span style="background:#D4537E;color:#fff;border-radius:10px;padding:0 4px;font-size:10px">${unread}</span>`:msgCount?` ${msgCount}`:''}</button>
           ${o.status==='new'?`<button class="btn bsm msent" data-id="${o.id}">${l.markSent}</button>`:''}
           ${o.status==='sent'?`<button class="btn bsm mdone" data-id="${o.id}" style="color:${GREEN}">${l.markDone}</button>`:''}
@@ -378,6 +405,34 @@ function bOrders(){
         </div></td>
       </tr>`;
     }).join(''):`<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--t3)">${l.noOrders}</td></tr>`}
+    </tbody>
+  </table></div>
+</div>`}
+
+function bComplaints(){
+  const complaints=[...S.complaints||[]].sort((a,b)=>b.id-a.id);
+  const openCount=complaints.filter(c=>c.status==='open').length;
+  return`<div class="panel">
+  <div class="ph"><span class="pht">📋 Klachten (${complaints.length})</span><span style="font-size:11px;color:var(--t2)">${openCount} open</span></div>
+  <div class="tw"><table>
+    <colgroup><col style="width:88px"><col style="width:130px"><col style="width:90px"><col style="width:140px"><col style="width:170px"><col style="width:75px"><col style="width:160px"></colgroup>
+    <thead><tr><th>Datum</th><th>Winkel</th><th>Type</th><th>Onderwerp</th><th>Omschrijving</th><th>Status</th><th>Acties</th></tr></thead>
+    <tbody>${complaints.length?complaints.map(c=>{
+      const st=S.stores.find(s=>s.id===c.store_id);
+      return`<tr>
+        <td style="color:var(--t2)">${c.created_at?new Date(c.created_at).toLocaleDateString('nl-NL'):''}</td>
+        <td style="font-weight:500">${st?st.name:'—'}</td>
+        <td>${c.type==='website'?'🖥️ Website':c.type==='goods'?'📦 Goederen':'📝 Algemeen'}</td>
+        <td style="font-weight:500">${c.subject}</td>
+        <td style="font-size:11px;color:var(--t2)">${c.description}</td>
+        <td>${c.status==='open'?'<span class="badge bnew">Open</span>':c.status==='in_progress'?'<span class="badge bsent">In behandeling</span>':'<span class="badge bdone">Opgelost</span>'}</td>
+        <td><div style="display:flex;gap:4px;flex-wrap:wrap">
+          ${c.status==='open'?`<button class="btn bsm cprog" data-id="${c.id}">In behandeling</button>`:''}
+          ${c.status!=='resolved'?`<button class="btn bsm cresolve" data-id="${c.id}" style="color:${GREEN}">Opgelost</button>`:''}
+          <button class="btn bsm creply" data-id="${c.id}">Reageer</button>
+        </div></td>
+      </tr>`;
+    }).join(''):`<tr><td colspan="7" style="text-align:center;padding:1.5rem;color:var(--t3)">Geen klachten</td></tr>`}
     </tbody>
   </table></div>
 </div>`}
@@ -504,6 +559,8 @@ function bAccounts(){
 function buildStoreView(){
   const l=t(),acc=S.session,store=S.stores.find(s=>s.id===acc.store_id);
   const myOrders=(S.orders||[]).filter(o=>o.store_id===acc.store_id);
+  const myComplaints=(S.complaints||[]).filter(c=>c.store_id===acc.store_id);
+  const myOrderHistory=(S.orderHistory||[]).filter(h=>h.store_id===acc.store_id);
   const maxQ=Math.max(1,...S.products.map(p=>qty(acc.store_id,p.id)));
   return`<div>
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.1rem;flex-wrap:wrap;gap:10px">
@@ -543,23 +600,45 @@ function buildStoreView(){
   <div class="panel">
     <div class="ph"><span class="pht">${l.myOrders}</span></div>
     <div class="tw"><table>
-      <colgroup><col style="width:85px"><col style="width:68px"><col style="width:220px"><col style="width:130px"><col style="width:80px"></colgroup>
-      <thead><tr><th>${l.date}</th><th>${l.status}</th><th>${l.products}</th><th>${l.note}</th><th>${l.chat}</th></tr></thead>
+      <colgroup><col style="width:55px"><col style="width:85px"><col style="width:68px"><col style="width:180px"><col style="width:110px"><col style="width:100px"></colgroup>
+      <thead><tr><th>#</th><th>${l.date}</th><th>${l.status}</th><th>${l.products}</th><th>${l.note}</th><th>Acties</th></tr></thead>
       <tbody>${myOrders.length?myOrders.map(o=>{
         const items=(S.orderItems||[]).filter(i=>i.order_id===o.id);
         const itemsHtml=items.map(i=>{const p=S.products.find(x=>x.id===i.product_id);return p?`${p.name} ×${i.quantity}`:''}).filter(Boolean).join(', ')||'—';
         const unread=(S.messages||[]).filter(m=>m.order_id===o.id&&m.from_account==='admin'&&!m.is_read).length;
+        const orderNum=String(o.order_number||o.id).padStart(4,'0');
         return`<tr>
+          <td style="font-weight:500;color:#D4537E">#${orderNum}</td>
           <td style="color:var(--t2)">${o.created_at}</td>
           <td>${rbadge(o.status)}</td>
           <td style="font-size:11px">${itemsHtml}</td>
           <td style="font-size:11px;color:var(--t2)">${o.note||'—'}</td>
           <td style="display:flex;gap:4px">
             ${o.status==='new'?`<button class="btn bsm eorder" data-id="${o.id}">${l.edit}</button>`:''}
+            <button class="btn bsm hist-order" data-id="${o.id}">📋</button>
             <button class="btn bsm chat-order" data-id="${o.id}">💬${unread?` <span style="background:#D4537E;color:#fff;border-radius:10px;padding:0 4px;font-size:10px">${unread}</span>`:''}</button>
           </td>
         </tr>`;
       }).join(''):`<tr><td colspan="5" style="text-align:center;padding:1.5rem;color:var(--t3)">${l.noMyOrders}</td></tr>`}
+      </tbody>
+    </table></div>
+  </div>
+  <div class="panel">
+    <div class="ph">
+      <span class="pht">📋 Klachten</span>
+      <button class="btn bp bsm" id="add-complaint-btn">+ Klacht indienen</button>
+    </div>
+    <div class="tw"><table>
+      <colgroup><col style="width:88px"><col style="width:90px"><col style="width:150px"><col style="width:180px"><col style="width:70px"><col style="width:150px"></colgroup>
+      <thead><tr><th>Datum</th><th>Type</th><th>Onderwerp</th><th>Omschrijving</th><th>Status</th><th>Reactie admin</th></tr></thead>
+      <tbody>${myComplaints.length?myComplaints.map(c=>`<tr>
+        <td style="color:var(--t2)">${c.created_at?new Date(c.created_at).toLocaleDateString('nl-NL'):''}</td>
+        <td>${c.type==='website'?'🖥️ Website':c.type==='goods'?'📦 Goederen':'📝 Algemeen'}</td>
+        <td style="font-weight:500">${c.subject}</td>
+        <td style="font-size:11px;color:var(--t2)">${c.description}</td>
+        <td>${c.status==='open'?'<span class="badge bnew">Open</span>':c.status==='in_progress'?'<span class="badge bsent">In behandeling</span>':'<span class="badge bdone">Opgelost</span>'}</td>
+        <td style="font-size:11px;color:var(--t2)">${c.admin_response||'—'}</td>
+      </tr>`).join(''):`<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--t3)">Geen klachten ingediend</td></tr>`}
       </tbody>
     </table></div>
   </div>
@@ -641,6 +720,37 @@ function buildModal(){
     <div class="fr"><label>${l.minStock}</label><input type="number" id="m-min" value="0" min="0"></div>
     <div class="fa"><button class="btn" id="mc">${l.cancel}</button><button class="btn bp" id="sp">${l.add}</button></div>`;}
 
+  else if(m.type==='order-history'){
+    const o=S.orders.find(x=>x.id===m.orderId);
+    const st=S.stores.find(x=>x.id===o?.store_id);
+    const orderNum=String(o?.order_number||m.orderId).padStart(4,'0');
+    const hist=(S.orderHistory||[]).filter(h=>h.order_id===m.orderId).sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
+    inner=`<h3>📋 Geschiedenis — Order #${orderNum}</h3>
+    <p style="font-size:12px;color:var(--t2);margin-bottom:1rem">${st?st.name:'—'} · ${o?.created_at||''}</p>
+    <div style="border:0.5px solid var(--b3);border-radius:var(--r1);overflow:hidden;margin-bottom:1rem">
+      ${hist.length?hist.map((h,i)=>`
+        <div style="padding:8px 12px;border-bottom:${i<hist.length-1?'0.5px solid var(--b3)':'none'};display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:12px">${h.event}</span>
+          <span style="font-size:11px;color:var(--t3)">${h.created_at?new Date(h.created_at).toLocaleString('nl-NL',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):''}</span>
+        </div>`).join(''):'<div style="padding:1rem;text-align:center;color:var(--t3);font-size:12px">Nog geen geschiedenis</div>'}
+    </div>
+    <div class="fa"><button class="btn" id="mc">Sluiten</button></div>`;}
+  else if(m.type==='add-complaint'){inner=`<h3>📋 Klacht indienen</h3>
+    <div class="fr"><label>Type klacht</label>
+      <select id="m-ctype">
+        <option value="website">🖥️ Website / app probleem</option>
+        <option value="goods">📦 Geleverde goederen</option>
+        <option value="general">📝 Algemeen</option>
+      </select>
+    </div>
+    <div class="fr"><label>Onderwerp</label><input type="text" id="m-subject" placeholder="Korte omschrijving..."></div>
+    <div class="fr"><label>Omschrijving</label><textarea id="m-desc" style="height:90px" placeholder="Beschrijf het probleem zo duidelijk mogelijk..."></textarea></div>
+    <div class="fa"><button class="btn" id="mc">Annuleren</button><button class="btn bp" id="scomp">Indienen</button></div>`;}
+  else if(m.type==='reply-complaint'){inner=`<h3>💬 Reageren op klacht</h3>
+    <p style="font-size:12px;color:var(--t2);margin-bottom:.9rem"><strong>${m.c.subject}</strong> — ${S.stores.find(s=>s.id===m.c.store_id)?.name||'—'}</p>
+    <div style="background:var(--bg2);border-radius:var(--r1);padding:10px;font-size:12px;color:var(--t2);margin-bottom:10px">${m.c.description}</div>
+    <div class="fr"><label>Reactie</label><textarea id="m-reply" style="height:80px" placeholder="Typ je reactie...">${m.c.admin_response||''}</textarea></div>
+    <div class="fa"><button class="btn" id="mc">Annuleren</button><button class="btn bp" id="sreply">Opslaan</button></div>`;}
   else if(m.type==='edit-account'){inner=`<h3>${l.edit} account</h3>
     <p style="font-size:12px;color:var(--t2);margin-bottom:.9rem">${m.a.username} — ${m.a.display_name}</p>
     <div class="fr"><label>${l.dispName}</label><input type="text" id="m-name" value="${m.a.display_name}"></div>
@@ -697,6 +807,9 @@ function bind(){
     const items=(S.orderItems||[]).filter(i=>i.order_id===o.id);
     S.modal={type:'edit-order',order:o,rows:items.length?items.map(i=>({productId:i.product_id,qty:i.quantity})):[{productId:S.products[0]?.id,qty:1}]};render();
   }));
+  document.querySelectorAll('.hist-order').forEach(el=>el.addEventListener('click',()=>{
+    S.modal={type:'order-history',orderId:parseInt(el.dataset.id)};render();
+  }));
   document.querySelectorAll('.chat-order').forEach(el=>el.addEventListener('click',async()=>{
     const oid=parseInt(el.dataset.id);
     const unread=(S.messages||[]).filter(m=>m.order_id===oid&&m.from_account!==S.session.id&&!m.is_read);
@@ -716,6 +829,13 @@ function bind(){
   document.querySelectorAll('.eprod').forEach(el=>el.addEventListener('click',()=>{const p=S.products.find(x=>x.id===parseInt(el.dataset.id));if(p){S.modal={type:'edit-product',p};render();}}));
   const aob=g('add-order-btn');if(aob)aob.addEventListener('click',()=>{S.modal={type:'add-order',storeId:S.stores[0]?.id,rows:[{productId:S.products[0]?.id,qty:1}]};render()});
   const sob=g('store-order-btn');if(sob)sob.addEventListener('click',()=>{S.modal={type:'add-order',storeId:S.session.store_id,rows:[{productId:S.products[0]?.id,qty:1}]};render()});
+  const acb=g('add-complaint-btn');if(acb)acb.addEventListener('click',()=>{S.modal={type:'add-complaint'};render()});
+  document.querySelectorAll('.cprog').forEach(el=>el.addEventListener('click',()=>updateComplaint(parseInt(el.dataset.id),{status:'in_progress'})));
+  document.querySelectorAll('.cresolve').forEach(el=>el.addEventListener('click',()=>updateComplaint(parseInt(el.dataset.id),{status:'resolved'})));
+  document.querySelectorAll('.creply').forEach(el=>el.addEventListener('click',()=>{
+    const c=(S.complaints||[]).find(x=>x.id===parseInt(el.dataset.id));
+    if(c){S.modal={type:'reply-complaint',c};render();}
+  }));
   const asb=g('add-store-btn');if(asb)asb.addEventListener('click',()=>{S.modal={type:'add-store'};render()});
   const bsb=g('back-stores-btn');if(bsb)bsb.addEventListener('click',()=>{S.selectedStore=null;S.storeSearch='';S.storeStatusFilter='all';render()});
   const ssrch=g('store-srch');if(ssrch)ssrch.addEventListener('input',e=>{S.storeSearch=e.target.value;renderKeepFocus('store-srch')});
@@ -763,6 +883,7 @@ function bindModal(){
         for(const r of rows){const[item]=await api('order_items',{method:'POST',body:JSON.stringify({order_id:oid,...r})});newItems.push(item)}
         const o=S.orders.find(x=>x.id===oid);if(o){o.store_id=sid;o.note=note;}
         S.orderItems=(S.orderItems||[]).filter(i=>i.order_id!==oid);S.orderItems.push(...newItems);
+        await logOrderHistory(oid,`✏️ Order aangepast door ${S.session.display_name||S.session.username}`);
         showToast('✓ '+t().saved);render();
       }else{
         // Check if there is already an open order for this store
@@ -796,6 +917,7 @@ function bindModal(){
           const newItems=[];
           for(const r of rows){const[item]=await api('order_items',{method:'POST',body:JSON.stringify({order_id:newOrder.id,...r})});newItems.push(item)}
           S.orders.unshift(newOrder);S.orderItems.push(...newItems);
+          await logOrderHistory(newOrder.id,`📝 Order aangemaakt door ${S.session.display_name||S.session.username}`);
           if(S.session.role==='admin')S.adminSubTab='orders';
           showToast('✓ '+t().saved);render();
         }
@@ -855,6 +977,31 @@ function bindModal(){
     try{const[np]=await api('products',{method:'POST',body:JSON.stringify({name:n,sku:gv('m-sku')||'APP-???',category:gv('m-cat')||t().general,size:gv('m-size')||'—',min_stock:isNaN(minVal)?0:minVal})});S.products.push(np);showToast('✓ '+t().saved);render()}catch(e){showToast('❌ '+t().errSave,'err')}
   });
 
+  const scomp=g('scomp');if(scomp)scomp.addEventListener('click',async()=>{
+    const type=gv('m-ctype')||'general';
+    const subject=gv('m-subject');
+    const desc=gv('m-desc');
+    if(!subject||!desc)return;
+    S.modal=null;render();
+    try{
+      const[nc]=await api('complaints',{method:'POST',body:JSON.stringify({store_id:S.session.store_id,type,subject,description:desc,status:'open',created_at:new Date().toISOString()})});
+      (S.complaints=S.complaints||[]).unshift(nc);
+      showToast('✓ Klacht ingediend');render();
+    }catch(e){showToast('❌ Fout bij opslaan','err')}
+  });
+
+  const sreply=g('sreply');if(sreply)sreply.addEventListener('click',async()=>{
+    const cid=S.modal.c.id;
+    const reply=gv('m-reply');
+    S.modal=null;render();
+    try{
+      await api(`complaints?id=eq.${cid}`,{method:'PATCH',body:JSON.stringify({admin_response:reply,status:'in_progress'})});
+      const c=(S.complaints||[]).find(x=>x.id===cid);
+      if(c){c.admin_response=reply;c.status='in_progress';}
+      showToast('✓ Reactie opgeslagen');render();
+    }catch(e){showToast('❌ Fout bij opslaan','err')}
+  });
+
   const uacc=g('uacc');if(uacc)uacc.addEventListener('click',async()=>{
     const aid=S.modal.a.id;
     const newName=gv('m-name');
@@ -876,6 +1023,32 @@ function bindModal(){
   });
 }
 
+async function updateComplaint(id,updates){
+  try{
+    await api(`complaints?id=eq.${id}`,{method:'PATCH',body:JSON.stringify(updates)});
+    const c=(S.complaints||[]).find(x=>x.id===id);
+    if(c)Object.assign(c,updates);
+    showToast('✓ Klacht bijgewerkt');render();
+  }catch(e){showToast('❌ Fout bij opslaan','err')}
+}
+
+async function logOrderHistory(orderId,event){
+  try{
+    const[h]=await api('order_history',{method:'POST',body:JSON.stringify({order_id:orderId,store_id:S.orders.find(x=>x.id===orderId)?.store_id,event})});
+    if(h)(S.orderHistory=S.orderHistory||[]).unshift(h);
+  }catch(e){}
+}
+
+async function cleanOldRecords(){
+  const cutoff=new Date(Date.now()-14*24*60*60*1000).toISOString();
+  try{
+    await api(`complaints?created_at=lt.${cutoff}`,{method:'DELETE',headers:{}});
+    await api(`order_history?created_at=lt.${cutoff}`,{method:'DELETE',headers:{}});
+    S.complaints=(S.complaints||[]).filter(c=>new Date(c.created_at)>new Date(cutoff));
+    S.orderHistory=(S.orderHistory||[]).filter(h=>new Date(h.created_at)>new Date(cutoff));
+  }catch(e){}
+}
+
 async function updateOrderStatus(id,status){
   try{
     await api(`orders?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({status})});
@@ -893,7 +1066,11 @@ async function updateOrderStatus(id,status){
           S.stock[key]=newQty;
         }
         const st=S.stores.find(s=>s.id===o.store_id);
+        await logOrderHistory(id,`✅ Geleverd — voorraad bijgewerkt voor ${st?st.name:'winkel'}`);
         showToast('✓ Voorraad bijgewerkt — '+(st?st.name:''));
+      }else if(status==='sent'){
+        await logOrderHistory(id,'📦 Order verzonden');
+        showToast('✓ '+t().saved);
       }else{showToast('✓ '+t().saved)}
     }
     render();
@@ -1004,7 +1181,7 @@ function requestNotificationPermission(){
   }
 }
 
-loadAll();
+loadAll().then(()=>cleanOldRecords());
 // Start polling after initial load
 setTimeout(()=>{
   if(S.session?.role==='admin'){
