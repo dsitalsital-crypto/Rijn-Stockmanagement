@@ -74,8 +74,8 @@ tbody tr:hover{background:var(--bg2)}
 <body>
 <div class="wrap"><div id="root"></div></div>
 <script>
-const SB='https://mkapnhjvrujifhnseiuk.supabase.co';
-const KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1rYXBuaGp2cnVqaWZobnNlaXVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxMjYzNDUsImV4cCI6MjA5MjcwMjM0NX0.Tnp0snwa7-m07ri8AI3bBvb1tdptx3utVEY7TLdqz6o';
+const SB='https://rijn-stockmanagement.dsitalsital.workers.dev';
+const KEY=''; // API key is now hidden in the Cloudflare Worker
 const PINK='#D4537E',AMBER='#EF9F27',RED='#E24B4A',GREEN='#639922';
 
 const TR={
@@ -180,10 +180,9 @@ const today=()=>new Date().toISOString().slice(0,10);
 const barCol=(q,min)=>min===0?GREEN:q===0?RED:q<min?AMBER:GREEN;
 
 async function api(path,opts={}){
-  const sep=path.includes('?')?'&':'?';
-  const url=SB+'/rest/v1/'+path+sep+'apikey='+KEY;
+  const url=SB+'/rest/v1/'+path;
   const isDelete=opts.method==='DELETE';
-  const headers={'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json'};
+  const headers={'Content-Type':'application/json'};
   if(!isDelete)headers['Prefer']='return=representation';
   const res=await fetch(url,{...opts,headers});
   if(!res.ok){const e=await res.text();throw new Error(e)}
@@ -941,9 +940,9 @@ async function doLogin(){
 }
 
 async function authLogin(email, password){
-  const res = await fetch(SB+'/auth/v1/token?grant_type=password', {
+  const res = await fetch('https://mkapnhjvrujifhnseiuk.supabase.co/auth/v1/token?grant_type=password', {
     method: 'POST',
-    headers: {'apikey': KEY, 'Content-Type': 'application/json'},
+    headers: {'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1rYXBuaGp2cnVqaWZobnNlaXVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxMjYzNDUsImV4cCI6MjA5MjcwMjM0NX0.Tnp0snwa7-m07ri8AI3bBvb1tdptx3utVEY7TLdqz6o', 'Content-Type': 'application/json'},
     body: JSON.stringify({email, password})
   });
   const data = await res.json();
@@ -953,9 +952,9 @@ async function authLogin(email, password){
 
 async function authLogout(accessToken){
   try{
-    await fetch(SB+'/auth/v1/logout', {
+    await fetch('https://mkapnhjvrujifhnseiuk.supabase.co/auth/v1/logout', {
       method: 'POST',
-      headers: {'apikey': KEY, 'Authorization': 'Bearer '+accessToken}
+      headers: {'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1rYXBuaGp2cnVqaWZobnNlaXVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxMjYzNDUsImV4cCI6MjA5MjcwMjM0NX0.Tnp0snwa7-m07ri8AI3bBvb1tdptx3utVEY7TLdqz6o', 'Authorization': 'Bearer '+accessToken}
     });
   }catch(e){}
 }
