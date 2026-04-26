@@ -370,7 +370,7 @@ function bOrders(){
         <td style="font-size:11px">${itemsHtml}</td>
         <td style="font-size:11px;color:var(--t2)">${o.note||'—'}</td>
         <td><div style="display:flex;gap:4px;flex-wrap:wrap">
-          ${o.status!=='done'?`<button class="btn bsm eorder" data-id="${o.id}">${l.edit}</button>`:''}
+          ${o.status!=='done'&&S.session.role==='admin'?`<button class="btn bsm eorder" data-id="${o.id}">${l.edit}</button>`:''}
           <button class="btn bsm chat-order" data-id="${o.id}">💬${unread?` <span style="background:#D4537E;color:#fff;border-radius:10px;padding:0 4px;font-size:10px">${unread}</span>`:msgCount?` ${msgCount}`:''}</button>
           ${o.status==='new'?`<button class="btn bsm msent" data-id="${o.id}">${l.markSent}</button>`:''}
           ${o.status==='sent'?`<button class="btn bsm mdone" data-id="${o.id}" style="color:${GREEN}">${l.markDone}</button>`:''}
@@ -405,9 +405,17 @@ function bStores(){
 
 function bStoreDetail(store,l){
   const maxQ=Math.max(1,...S.products.map(p=>qty(store.id,p.id)));
-  const sorted=[...S.products].sort((a,b)=>a.name.localeCompare(b.name));
+  const sw=S.storeSearch||'';
+  const sf=S.storeStatusFilter||'all';
+  const sorted=[...S.products].sort((a,b)=>a.name.localeCompare(b.name)).filter(p=>{
+    if(sw&&!p.name.toLowerCase().includes(sw.toLowerCase())&&!p.sku.toLowerCase().includes(sw.toLowerCase())&&!p.category.toLowerCase().includes(sw.toLowerCase()))return false;
+    if(sf==='low'){const q=qty(store.id,p.id);return p.min_stock>0&&q>0&&q<p.min_stock}
+    if(sf==='out'){const q=qty(store.id,p.id);return p.min_stock>0&&q===0}
+    if(sf==='ok'){const q=qty(store.id,p.id);return p.min_stock===0||(q>=p.min_stock)}
+    return true;
+  });
   return`<div>
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;flex-wrap:wrap">
     <button class="btn bsm" id="back-stores-btn">← Terug</button>
     <span style="font-size:16px;font-weight:500">${store.name}</span>
     <span style="font-size:13px;color:var(--t2)">${store.city}</span>
@@ -420,11 +428,22 @@ function bStoreDetail(store,l){
     <div class="met"><div class="met-l" style="color:#A32D2D">${l.outOfStock}</div><div class="met-v" style="color:${RED}">${S.products.filter(p=>p.min_stock>0&&qty(store.id,p.id)===0).length}</div></div>
   </div>
   <div class="panel">
-    <div class="ph"><span class="pht">${l.stockOv} — ${store.name}</span></div>
+    <div class="ph">
+      <span class="pht">${l.stockOv} — ${store.name}</span>
+      <div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap">
+        <input type="text" id="store-srch" placeholder="${l.search}" value="${sw}" style="width:160px;height:30px;font-size:12px">
+        <select id="store-sf" style="height:30px;font-size:12px">
+          <option value="all" ${sf==='all'?'selected':''}>${l.allSt}</option>
+          <option value="ok" ${sf==='ok'?'selected':''}>${l.ok}</option>
+          <option value="low" ${sf==='low'?'selected':''}>${l.low}</option>
+          <option value="out" ${sf==='out'?'selected':''}>${l.outSt}</option>
+        </select>
+      </div>
+    </div>
     <div class="tw"><table>
       <colgroup><col style="width:180px"><col style="width:80px"><col style="width:100px"><col style="width:60px"><col style="width:120px"><col style="width:65px"><col style="width:75px"></colgroup>
       <thead><tr><th>${l.product}</th><th>${l.sku}</th><th>${l.cat}</th><th>${l.size}</th><th>${l.stockTab}</th><th>${l.min}</th><th>${l.status}</th></tr></thead>
-      <tbody>${sorted.map(p=>{
+      <tbody>${sorted.length?sorted.map(p=>{
         const q=qty(store.id,p.id),pct=Math.round(q/maxQ*100),c=barCol(q,p.min_stock);
         return`<tr>
           <td style="font-weight:500">${p.name}</td>
@@ -435,7 +454,7 @@ function bStoreDetail(store,l){
           <td style="color:var(--t2)">${p.min_stock}</td>
           <td>${sbadge(q,p.min_stock)}</td>
         </tr>`;
-      }).join('')}
+      }).join(''):`<tr><td colspan="7" style="text-align:center;padding:1.5rem;color:var(--t3)">${l.noProducts}</td></tr>`}
       </tbody>
     </table></div>
   </div>
@@ -535,7 +554,10 @@ function buildStoreView(){
           <td>${rbadge(o.status)}</td>
           <td style="font-size:11px">${itemsHtml}</td>
           <td style="font-size:11px;color:var(--t2)">${o.note||'—'}</td>
-          <td><button class="btn bsm chat-order" data-id="${o.id}">💬${unread?` <span style="background:#D4537E;color:#fff;border-radius:10px;padding:0 4px;font-size:10px">${unread}</span>`:''}</button></td>
+          <td style="display:flex;gap:4px">
+            ${o.status==='new'?`<button class="btn bsm eorder" data-id="${o.id}">${l.edit}</button>`:''}
+            <button class="btn bsm chat-order" data-id="${o.id}">💬${unread?` <span style="background:#D4537E;color:#fff;border-radius:10px;padding:0 4px;font-size:10px">${unread}</span>`:''}</button>
+          </td>
         </tr>`;
       }).join(''):`<tr><td colspan="5" style="text-align:center;padding:1.5rem;color:var(--t3)">${l.noMyOrders}</td></tr>`}
       </tbody>
@@ -668,7 +690,12 @@ function bind(){
   }));
   document.querySelectorAll('.eorder').forEach(el=>el.addEventListener('click',()=>{
     const o=S.orders.find(x=>x.id===parseInt(el.dataset.id));
-    if(o){const items=(S.orderItems||[]).filter(i=>i.order_id===o.id);S.modal={type:'edit-order',order:o,rows:items.length?items.map(i=>({productId:i.product_id,qty:i.quantity})):[{productId:S.products[0]?.id,qty:1}]};render();}
+    if(!o)return;
+    // Stores can only edit 'new' orders, admins can edit 'new' and 'sent'
+    const isAdmin=S.session.role==='admin';
+    if(!isAdmin&&o.status!=='new'){showToast('Alleen admin kan verzonden orders bewerken','err');return;}
+    const items=(S.orderItems||[]).filter(i=>i.order_id===o.id);
+    S.modal={type:'edit-order',order:o,rows:items.length?items.map(i=>({productId:i.product_id,qty:i.quantity})):[{productId:S.products[0]?.id,qty:1}]};render();
   }));
   document.querySelectorAll('.chat-order').forEach(el=>el.addEventListener('click',async()=>{
     const oid=parseInt(el.dataset.id);
@@ -690,7 +717,9 @@ function bind(){
   const aob=g('add-order-btn');if(aob)aob.addEventListener('click',()=>{S.modal={type:'add-order',storeId:S.stores[0]?.id,rows:[{productId:S.products[0]?.id,qty:1}]};render()});
   const sob=g('store-order-btn');if(sob)sob.addEventListener('click',()=>{S.modal={type:'add-order',storeId:S.session.store_id,rows:[{productId:S.products[0]?.id,qty:1}]};render()});
   const asb=g('add-store-btn');if(asb)asb.addEventListener('click',()=>{S.modal={type:'add-store'};render()});
-  const bsb=g('back-stores-btn');if(bsb)bsb.addEventListener('click',()=>{S.selectedStore=null;render()});
+  const bsb=g('back-stores-btn');if(bsb)bsb.addEventListener('click',()=>{S.selectedStore=null;S.storeSearch='';S.storeStatusFilter='all';render()});
+  const ssrch=g('store-srch');if(ssrch)ssrch.addEventListener('input',e=>{S.storeSearch=e.target.value;renderKeepFocus('store-srch')});
+  const ssf=g('store-sf');if(ssf)ssf.addEventListener('change',e=>{S.storeStatusFilter=e.target.value;render()});
   document.querySelectorAll('.store-row').forEach(el=>el.addEventListener('click',e=>{
     if(e.target.classList.contains('dstore')||e.target.classList.contains('btn'))return;
     S.selectedStore=parseInt(el.dataset.sid);render();
@@ -727,20 +756,50 @@ function bindModal(){
     S.modal=null;render();
     try{
       if(isEdit){
+        // Update existing order
         await api(`orders?id=eq.${oid}`,{method:'PATCH',body:JSON.stringify({store_id:sid,note})});
         await api(`order_items?order_id=eq.${oid}`,{method:'DELETE',headers:{}});
         const newItems=[];
         for(const r of rows){const[item]=await api('order_items',{method:'POST',body:JSON.stringify({order_id:oid,...r})});newItems.push(item)}
         const o=S.orders.find(x=>x.id===oid);if(o){o.store_id=sid;o.note=note;}
         S.orderItems=(S.orderItems||[]).filter(i=>i.order_id!==oid);S.orderItems.push(...newItems);
+        showToast('✓ '+t().saved);render();
       }else{
-        const[newOrder]=await api('orders',{method:'POST',body:JSON.stringify({store_id:sid,note,status:'new',created_at:today()})});
-        const newItems=[];
-        for(const r of rows){const[item]=await api('order_items',{method:'POST',body:JSON.stringify({order_id:newOrder.id,...r})});newItems.push(item)}
-        S.orders.unshift(newOrder);S.orderItems.push(...newItems);
-        if(S.session.role==='admin')S.adminSubTab='orders';
+        // Check if there is already an open order for this store
+        const existingOrder=S.orders.find(o=>o.store_id===sid&&o.status==='new');
+        if(existingOrder){
+          // Merge into existing order - add/update products
+          const existingItems=(S.orderItems||[]).filter(i=>i.order_id===existingOrder.id);
+          for(const r of rows){
+            const existing=existingItems.find(i=>i.product_id===r.product_id);
+            if(existing){
+              // Add quantity to existing item
+              const newQty=existing.quantity+r.quantity;
+              await api(`order_items?id=eq.${existing.id}`,{method:'PATCH',body:JSON.stringify({quantity:newQty})});
+              existing.quantity=newQty;
+            }else{
+              // Add new product to existing order
+              const[item]=await api('order_items',{method:'POST',body:JSON.stringify({order_id:existingOrder.id,...r})});
+              S.orderItems.push(item);
+            }
+          }
+          // Update note if provided
+          if(note){
+            const combined=existingOrder.note?existingOrder.note+' | '+note:note;
+            await api(`orders?id=eq.${existingOrder.id}`,{method:'PATCH',body:JSON.stringify({note:combined})});
+            existingOrder.note=combined;
+          }
+          showToast('✓ Samengevoegd met bestaande order!');render();
+        }else{
+          // Create new order
+          const[newOrder]=await api('orders',{method:'POST',body:JSON.stringify({store_id:sid,note,status:'new',created_at:today()})});
+          const newItems=[];
+          for(const r of rows){const[item]=await api('order_items',{method:'POST',body:JSON.stringify({order_id:newOrder.id,...r})});newItems.push(item)}
+          S.orders.unshift(newOrder);S.orderItems.push(...newItems);
+          if(S.session.role==='admin')S.adminSubTab='orders';
+          showToast('✓ '+t().saved);render();
+        }
       }
-      showToast('✓ '+t().saved);render();
     }catch(e){showToast('❌ '+t().errSave,'err')}
   });
 
