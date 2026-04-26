@@ -184,6 +184,11 @@ async function api(path,opts={}){
   const isDelete=opts.method==='DELETE';
   const headers={'Content-Type':'application/json'};
   if(!isDelete)headers['Prefer']='return=representation';
+  // Send role info so Worker can enforce permissions
+  if(S.session){
+    headers['X-User-Role']=S.session.role||'guest';
+    if(S.session.store_id)headers['X-User-Store']=String(S.session.store_id);
+  }
   const res=await fetch(url,{...opts,headers});
   if(!res.ok){const e=await res.text();throw new Error(e)}
   const txt=await res.text();
