@@ -292,28 +292,9 @@ function buildAdmin(){
     <button class="tab ${sub==='stores'?'on':''}" data-sub="stores">${l.stores}</button>
     <button class="tab ${sub==='products'?'on':''}" data-sub="products">${l.products}</button>
     <button class="tab ${sub==='accounts'?'on':''}" data-sub="accounts">${l.accounts}</button>
-    <button class="tab ${sub==='complaints'?'on':''}" data-sub="complaints">📋 Klachten${(S.complaints||[]).filter(c=>c.status==='open').length?` <span style="background:#D4537E;color:#fff;border-radius:10px;padding:0 5px;font-size:10px;margin-left:3px">${(S.complaints||[]).filter(c=>c.status==='open').length}</span>":''}</button>
+    <button class="tab ${sub==='complaints'?'on':''}" data-sub="complaints">📋 Klachten${(S.complaints||[]).filter(c=>c.status==='open').length?` <span style="background:#D4537E;color:#fff;border-radius:10px;padding:0 5px;font-size:10px;margin-left:3px">${(S.complaints||[]).filter(c=>c.status==='open').length}</span>`:''}</button>
   </div>
   ${sub==='stock'?bStock():sub==='alerts'?bAlerts():sub==='orders'?bOrders():sub==='stores'?bStores():sub==='products'?bProducts():sub==='complaints'?bComplaints():bAccounts()}
-  <div class="panel">
-    <div class="ph">
-      <span class="pht">📋 Klachten</span>
-      <button class="btn bp bsm" id="add-complaint-btn">+ Klacht indienen</button>
-    </div>
-    <div class="tw"><table>
-      <colgroup><col style="width:88px"><col style="width:90px"><col style="width:150px"><col style="width:180px"><col style="width:70px"><col style="width:150px"></colgroup>
-      <thead><tr><th>Datum</th><th>Type</th><th>Onderwerp</th><th>Omschrijving</th><th>Status</th><th>Reactie admin</th></tr></thead>
-      <tbody>${myComplaints.length?myComplaints.map(c=>`<tr>
-        <td style="color:var(--t2)">${c.created_at?new Date(c.created_at).toLocaleDateString('nl-NL'):''}</td>
-        <td>${c.type==='website'?'🖥️ Website':c.type==='goods'?'📦 Goederen':'📝 Algemeen'}</td>
-        <td style="font-weight:500">${c.subject}</td>
-        <td style="font-size:11px;color:var(--t2)">${c.description}</td>
-        <td>${c.status==='open'?'<span class="badge bnew">Open</span>':c.status==='in_progress'?'<span class="badge bsent">In behandeling</span>':'<span class="badge bdone">Opgelost</span>'}</td>
-        <td style="font-size:11px;color:var(--t2)">${c.admin_response||'—'}</td>
-      </tr>`).join(''):`<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--t3)">Geen klachten ingediend</td></tr>`}
-      </tbody>
-    </table></div>
-  </div>
   ${S.modal?buildModal():''}
 </div>`}
 
