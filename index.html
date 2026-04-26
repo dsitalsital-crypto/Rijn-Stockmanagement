@@ -393,17 +393,61 @@ function bOrders(){
 
 function bStores(){
   const l=t();
+  // If a store is selected, show detail view
+  if(S.selectedStore){
+    const store=S.stores.find(s=>s.id===S.selectedStore);
+    if(!store)S.selectedStore=null;
+    else return bStoreDetail(store,l);
+  }
   return`<div class="panel">
   <div class="ph"><span class="pht">${l.stores} (${S.stores.length})</span><button class="btn bp bsm" id="add-store-btn">${l.addStore}</button></div>
   <div class="tw"><table>
     <colgroup><col style="width:200px"><col style="width:140px"><col style="width:80px"><col style="width:80px"><col style="width:100px"></colgroup>
     <thead><tr><th>${l.name}</th><th>${l.city}</th><th>${l.total}</th><th>${l.products}</th><th></th></tr></thead>
-    <tbody>${[...S.stores].sort((a,b)=>a.id-b.id).map(s=>`<tr>
-      <td style="font-weight:500">${s.name}</td><td style="color:var(--t2)">${s.city}</td>
+    <tbody>${[...S.stores].sort((a,b)=>a.id-b.id).map(s=>`<tr style="cursor:pointer" class="store-row" data-sid="${s.id}">
+      <td style="font-weight:500;color:#D4537E">${s.name}</td><td style="color:var(--t2)">${s.city}</td>
       <td>${storeTotal(s.id)}</td><td>${storeItems(s.id)}</td>
       <td><button class="btn bd bsm dstore" data-id="${s.id}">${l.remove}</button></td>
     </tr>`).join('')}</tbody>
   </table></div>
+</div>`}
+
+function bStoreDetail(store,l){
+  const maxQ=Math.max(1,...S.products.map(p=>qty(store.id,p.id)));
+  const sorted=[...S.products].sort((a,b)=>a.name.localeCompare(b.name));
+  return`<div>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem">
+    <button class="btn bsm" id="back-stores-btn">← Terug</button>
+    <span style="font-size:16px;font-weight:500">${store.name}</span>
+    <span style="font-size:13px;color:var(--t2)">${store.city}</span>
+    <span class="badge bstr">${storeTotal(store.id)} stuks</span>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:1rem">
+    <div class="met"><div class="met-l">${l.total}</div><div class="met-v">${storeTotal(store.id)}</div></div>
+    <div class="met"><div class="met-l">${l.inStock}</div><div class="met-v">${storeItems(store.id)}</div></div>
+    <div class="met"><div class="met-l" style="color:#854F0B">${l.lowStock}</div><div class="met-v" style="color:${AMBER}">${S.products.filter(p=>p.min_stock>0&&qty(store.id,p.id)>0&&qty(store.id,p.id)<p.min_stock).length}</div></div>
+    <div class="met"><div class="met-l" style="color:#A32D2D">${l.outOfStock}</div><div class="met-v" style="color:${RED}">${S.products.filter(p=>p.min_stock>0&&qty(store.id,p.id)===0).length}</div></div>
+  </div>
+  <div class="panel">
+    <div class="ph"><span class="pht">${l.stockOv} — ${store.name}</span></div>
+    <div class="tw"><table>
+      <colgroup><col style="width:180px"><col style="width:80px"><col style="width:100px"><col style="width:60px"><col style="width:120px"><col style="width:65px"><col style="width:75px"></colgroup>
+      <thead><tr><th>${l.product}</th><th>${l.sku}</th><th>${l.cat}</th><th>${l.size}</th><th>${l.stockTab}</th><th>${l.min}</th><th>${l.status}</th></tr></thead>
+      <tbody>${sorted.map(p=>{
+        const q=qty(store.id,p.id),pct=Math.round(q/maxQ*100),c=barCol(q,p.min_stock);
+        return`<tr>
+          <td style="font-weight:500">${p.name}</td>
+          <td style="color:var(--t2)">${p.sku}</td>
+          <td>${p.category}</td>
+          <td>${p.size}</td>
+          <td><div class="barcell"><span style="min-width:28px;text-align:right;font-weight:500;color:${p.min_stock>0&&q===0?RED:p.min_stock>0&&q<p.min_stock?AMBER:'var(--t1)'}">${q}</span><div class="barbg"><div class="barfill" style="width:${pct}%;background:${c}"></div></div></div></td>
+          <td style="color:var(--t2)">${p.min_stock}</td>
+          <td>${sbadge(q,p.min_stock)}</td>
+        </tr>`;
+      }).join('')}
+      </tbody>
+    </table></div>
+  </div>
 </div>`}
 
 function bProducts(){
@@ -642,6 +686,11 @@ function bind(){
   const aob=g('add-order-btn');if(aob)aob.addEventListener('click',()=>{S.modal={type:'add-order',storeId:S.stores[0]?.id,rows:[{productId:S.products[0]?.id,qty:1}]};render()});
   const sob=g('store-order-btn');if(sob)sob.addEventListener('click',()=>{S.modal={type:'add-order',storeId:S.session.store_id,rows:[{productId:S.products[0]?.id,qty:1}]};render()});
   const asb=g('add-store-btn');if(asb)asb.addEventListener('click',()=>{S.modal={type:'add-store'};render()});
+  const bsb=g('back-stores-btn');if(bsb)bsb.addEventListener('click',()=>{S.selectedStore=null;render()});
+  document.querySelectorAll('.store-row').forEach(el=>el.addEventListener('click',e=>{
+    if(e.target.classList.contains('dstore')||e.target.classList.contains('btn'))return;
+    S.selectedStore=parseInt(el.dataset.sid);render();
+  }));
   const apb=g('add-prod-btn');if(apb)apb.addEventListener('click',()=>{S.modal={type:'add-product'};render()});
   const aab=g('add-acc-btn');if(aab)aab.addEventListener('click',()=>{S.modal={type:'add-account'};render()});
 }
