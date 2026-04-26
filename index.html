@@ -71,6 +71,7 @@ tbody tr:hover{background:var(--bg2)}
 .chat-bubble{display:flex;flex-direction:column;margin-bottom:8px}
 .chat-msg{padding:7px 11px;border-radius:12px;font-size:12px;max-width:78%;word-break:break-word}
 </style>
+<style id="theme-style"></style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
@@ -237,7 +238,7 @@ const S={
   session:getSavedSession(),modal:null,search:'',productSearch:'',filterStore:'all',filterStatus:'all',
   adminSubTab:'stock',loginErr:'',loginUser:'',loginPass:'',
   lang:localStorage.getItem('appLang')||'nl',
-  stores:[],products:[],stock:{},orders:[],orderItems:[],accounts:[],messages:[],complaints:[],orderHistory:[],complaintMsgs:[],attendance:[],company:null,
+  stores:[],products:[],stock:{},orders:[],orderItems:[],accounts:[],messages:[],complaints:[],orderHistory:[],complaintMsgs:[],attendance:[],stockHistory:[],company:null,
   loading:true,
 };
 
@@ -268,7 +269,7 @@ async function loadAll(){
   const cid=S.company?.id;
   const companyFilter=cid?`&company_id=eq.${cid}`:'';
   try{
-    const[stores,products,stockRows,orders,orderItems,accounts,messages,complaints,orderHistory,complaintMsgs,attendance]=await Promise.all([
+    const[stores,products,stockRows,orders,orderItems,accounts,messages,complaints,orderHistory,complaintMsgs,attendance,stockHistory]=await Promise.all([
       api('stores?order=id'+companyFilter),api('products?order=name'),api('stock?select=*'),
       api('orders?order=id.desc'),api('order_items?select=*'),
       api('accounts?order=username'+companyFilter),api('messages?order=created_at'),
@@ -276,6 +277,7 @@ async function loadAll(){
       api('order_history?order=created_at.desc'),
       api('complaint_messages?order=created_at'),
       api('attendance?order=logged_in_at.desc&login_date=eq.'+today()),
+      api('stock_history?order=changed_at.desc&limit=200'),
     ]);
     S.stores=stores||[];S.products=products||[];
     S.stock={};(stockRows||[]).forEach(r=>{S.stock[r.store_id+'-'+r.product_id]=r.quantity});
@@ -285,6 +287,7 @@ async function loadAll(){
     S.orderHistory=orderHistory||[];
     S.complaintMsgs=complaintMsgs||[];
     S.attendance=attendance||[];
+    S.stockHistory=stockHistory||[];
   }catch(e){showToast('❌ '+e.message,'err')}
   S.loading=false;render();
 }
@@ -310,8 +313,27 @@ function langBar(){return`<div style="display:flex;gap:5px">
   <button class="lbtn ${S.lang==='tr'?'on':''}" data-lang="tr">TR</button>
 </div>`}
 
+function applyTheme(){
+  const style=document.getElementById('theme-style');
+  if(style){
+    if(S.darkMode){
+      style.textContent=`:root{--bg1:#1e1e1e;--bg2:#2a2a2a;--bg3:#333;--t1:#e8e8e8;--t2:#a0a0a0;--t3:#6a6a6a;--b2:rgba(255,255,255,0.2);--b3:rgba(255,255,255,0.1);}`;
+    }else{
+      style.textContent=`:root{--bg1:#fff;--bg2:#f5f5f3;--bg3:#eeede9;--t1:#1a1a1a;--t2:#6b6b6b;--t3:#9b9b9b;--b2:rgba(0,0,0,0.2);--b3:rgba(0,0,0,0.1);}`;
+    }
+  }
+}
+
+function toggleDarkMode(){
+  S.darkMode=!S.darkMode;
+  localStorage.setItem('darkMode',S.darkMode);
+  applyTheme();
+  render();
+}
+
 function render(){
   if(S.session)saveSession(S.session);
+  applyTheme();
   let html;
   if(S.loading){
     html=`<div class="loading"><div class="spinner"></div>${t().loading}</div>`;
@@ -396,7 +418,7 @@ function buildAdmin(){
         <div style="font-size:12px;color:var(--t2)">${S.session.role==='manager'?t().manager:l.fullAccess+' '+S.stores.length+' '+l.stores2}</div>
       </div>
     </div>
-    <div style="display:flex;gap:8px;align-items:center">${langBar()}<button class="btn bsm" id="refresh-btn">↻</button><button class="btn bsm" id="logout-btn">${l.out}</button></div>
+    <div style="display:flex;gap:8px;align-items:center">${langBar()}<button class="btn bsm" onclick="toggleDarkMode()">${S.darkMode?'☀️':'🌙'}</button><button class="btn bsm" id="refresh-btn">↻</button><button class="btn bsm" id="logout-btn">${l.out}</button></div>
   </div>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:1.2rem">
     <div class="met"><div class="met-l">${l.total}</div><div class="met-v">${totalAll().toLocaleString()}</div></div>
@@ -407,6 +429,7 @@ function buildAdmin(){
     <div class="met"><div class="met-l" style="color:#3C3489">${l.openReqs}</div><div class="met-v" style="color:#7F77DD">${or}</div></div>
   </div>
   <div class="tabs">
+    <button class="tab ${sub==='dashboard'?'on':''}" data-sub="dashboard">📊 Dashboard</button>
     <button class="tab ${sub==='stock'?'on':''}" data-sub="stock">${l.stockTab}</button>
     <button class="tab ${sub==='alerts'?'on':''}" data-sub="alerts">${l.alerts}${al?` <span style="background:#A32D2D;color:#fff;border-radius:10px;padding:0 5px;font-size:10px;margin-left:3px">${al}</span>`:''}</button>
     <button class="tab ${sub==='orders'?'on':''}" data-sub="orders">${l.orders}${or?` <span style="background:#3C3489;color:#fff;border-radius:10px;padding:0 5px;font-size:10px;margin-left:3px">${or}</span>`:''}${unread?` <span style="background:#D4537E;color:#fff;border-radius:10px;padding:0 5px;font-size:10px;margin-left:3px">💬${unread}</span>`:''}</button>
@@ -417,8 +440,123 @@ function buildAdmin(){
     ${(S.session.role==='admin'||S.session.role==='manager')?`<button class="tab ${sub==='export'?'on':''}" data-sub="export">📤 Export</button>`:''}
     <button class="tab ${sub==='complaints'?'on':''}" data-sub="complaints">📋 Klachten${(S.complaints||[]).filter(c=>c.status==='open').length?` <span style="background:#D4537E;color:#fff;border-radius:10px;padding:0 5px;font-size:10px;margin-left:3px">${(S.complaints||[]).filter(c=>c.status==='open').length}</span>`:''}</button>
   </div>
-  ${sub==='stock'?bStock():sub==='alerts'?bAlerts():sub==='orders'?bOrders():sub==='stores'?bStores():sub==='products'?bProducts():sub==='complaints'?bComplaints():sub==='attendance'?bAttendance():sub==='export'?bExportPage():bAccounts()}
+  ${sub==='dashboard'?bDashboard():sub==='stock'?bStock():sub==='alerts'?bAlerts():sub==='orders'?bOrders():sub==='stores'?bStores():sub==='products'?bProducts():sub==='complaints'?bComplaints():sub==='attendance'?bAttendance():sub==='export'?bExportPage():bAccounts()}
   ${S.modal?buildModal():''}
+</div>`}
+
+function bDashboard(){
+  const l=t();
+  const period=S.dashPeriod||'week';
+  const now=new Date();
+
+  // Orders per period
+  const ordersFiltered=filterByPeriod([...S.orders],'created_at',period);
+  const newOrders=ordersFiltered.filter(o=>o.status==='new').length;
+  const sentOrders=ordersFiltered.filter(o=>o.status==='sent').length;
+  const doneOrders=ordersFiltered.filter(o=>o.status==='done').length;
+
+  // Top stores by orders
+  const storeOrderCounts=S.stores.map(s=>({
+    store:s,
+    count:ordersFiltered.filter(o=>o.store_id===s.id).length
+  })).sort((a,b)=>b.count-a.count).slice(0,5);
+
+  // Low stock count
+  const lowCount=allLow();
+  const outCount=allOut();
+
+  // Recent activity
+  const recentOrders=[...S.orders].sort((a,b)=>b.id-a.id).slice(0,5);
+
+  // Complaints
+  const openComplaints=(S.complaints||[]).filter(c=>c.status==='open').length;
+
+  // Attendance today
+  const todayAtt=S.attendance.filter(a=>a.login_date===today()).length;
+
+  return`<div>
+  <!-- Period selector -->
+  <div style="display:flex;gap:6px;margin-bottom:1rem;flex-wrap:wrap;align-items:center">
+    <span style="font-size:12px;color:var(--t2);font-weight:500">Periode:</span>
+    ${['day','week','month','year'].map(p=>`<button class="btn bsm ${period===p?'bp':''} dash-period" data-val="${p}">${{day:l.today,week:l.thisWeek,month:l.thisMonth,year:l.thisYear}[p]}</button>`).join('')}
+  </div>
+
+  <!-- Top metrics -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:1rem">
+    <div class="met" style="border-left:3px solid #7F77DD">
+      <div class="met-l">Orders ${period==='day'?l.today:period==='week'?l.thisWeek:period==='month'?l.thisMonth:l.thisYear}</div>
+      <div class="met-v">${ordersFiltered.length}</div>
+      <div style="font-size:11px;color:var(--t3);margin-top:2px">✅ ${doneOrders} klaar · 📦 ${sentOrders} verzonden · 🆕 ${newOrders} nieuw</div>
+    </div>
+    <div class="met" style="border-left:3px solid ${RED}">
+      <div class="met-l" style="color:#A32D2D">Uitverkocht</div>
+      <div class="met-v" style="color:${RED}">${outCount}</div>
+      <div style="font-size:11px;color:var(--t3);margin-top:2px">product-winkel combinaties</div>
+    </div>
+    <div class="met" style="border-left:3px solid ${AMBER}">
+      <div class="met-l" style="color:#854F0B">Laag voorraad</div>
+      <div class="met-v" style="color:${AMBER}">${lowCount}</div>
+      <div style="font-size:11px;color:var(--t3);margin-top:2px">product-winkel combinaties</div>
+    </div>
+    <div class="met" style="border-left:3px solid #E24B4A">
+      <div class="met-l">Open klachten</div>
+      <div class="met-v" style="color:#E24B4A">${openComplaints}</div>
+    </div>
+    <div class="met" style="border-left:3px solid ${GREEN}">
+      <div class="met-l">Aanwezig vandaag</div>
+      <div class="met-v" style="color:${GREEN}">${todayAtt} / ${S.stores.length}</div>
+    </div>
+    <div class="met" style="border-left:3px solid #D4537E">
+      <div class="met-l">Totaal stuks</div>
+      <div class="met-v">${totalAll().toLocaleString()}</div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem">
+    <!-- Top winkels -->
+    <div class="panel">
+      <div class="ph"><span class="pht">🏆 Meeste orders</span></div>
+      <div style="padding:10px">
+        ${storeOrderCounts.length?storeOrderCounts.map((x,i)=>`
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:0.5px solid var(--b3)">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:11px;color:var(--t3);min-width:16px">${i+1}.</span>
+              <span style="font-size:13px;font-weight:500">${x.store.name}</span>
+            </div>
+            <span class="badge bstr">${x.count} orders</span>
+          </div>`).join(''):'<div style="color:var(--t3);font-size:12px;padding:1rem;text-align:center">Geen orders</div>'}
+      </div>
+    </div>
+
+    <!-- Recent orders -->
+    <div class="panel">
+      <div class="ph"><span class="pht">🕐 Recente orders</span></div>
+      <div style="padding:10px">
+        ${recentOrders.length?recentOrders.map(o=>{
+          const st=S.stores.find(x=>x.id===o.store_id);
+          const num=String(o.order_number||o.id).padStart(4,'0');
+          return`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:0.5px solid var(--b3)">
+            <div>
+              <span style="font-size:12px;font-weight:500;color:#D4537E">#${num}</span>
+              <span style="font-size:12px;margin-left:6px">${st?st.name:'—'}</span>
+            </div>
+            ${rbadge(o.status)}
+          </div>`;
+        }).join(''):'<div style="color:var(--t3);font-size:12px;padding:1rem;text-align:center">Geen orders</div>'}
+      </div>
+    </div>
+  </div>
+
+  <!-- Low stock alerts -->
+  ${lowCount+outCount>0?`<div class="panel">
+    <div class="ph"><span class="pht">⚠️ Aandacht nodig</span></div>
+    <div style="padding:10px;display:flex;flex-wrap:wrap;gap:6px">
+      ${S.products.flatMap(p=>S.stores.filter(s=>p.min_stock>0&&qty(s.id,p.id)<p.min_stock).map(s=>({p,s,q:qty(s.id,p.id)}))).slice(0,12).map(({p,s,q})=>`
+        <div style="background:${q===0?'#FCEBEB':'#FAEEDA'};border:0.5px solid ${q===0?'#F7C1C1':'#FAC775'};border-radius:var(--r1);padding:5px 10px;font-size:11px">
+          <strong>${p.name}</strong> — ${s.name} <span style="color:${q===0?RED:AMBER}">(${q})</span>
+        </div>`).join('')}
+    </div>
+  </div>`:''}
 </div>`}
 
 function bStock(){
@@ -450,7 +588,8 @@ function bStock(){
         ${show.map(s=>{const q=qty(s.id,p.id),pct=Math.round(q/maxQ*100),c=barCol(q,p.min_stock);
           return`<td><div class="barcell"><span style="min-width:26px;text-align:right;font-weight:500;color:${p.min_stock>0&&q===0?RED:p.min_stock>0&&q<p.min_stock?AMBER:'var(--t1)'}">${q}</span><div class="barbg"><div class="barfill" style="width:${pct}%;background:${c}"></div></div></div>
           <span class="elk" data-edit="${s.id}-${p.id}" style="font-size:10px;color:var(--t3);cursor:pointer">${l.edit.toLowerCase()}</span>
-          <span class="rlk" data-req="${s.id}-${p.id}" style="font-size:10px;color:#7F77DD;cursor:pointer;margin-left:4px">${l.req}</span></td>`;
+          <span class="rlk" data-req="${s.id}-${p.id}" style="font-size:10px;color:#7F77DD;cursor:pointer;margin-left:4px">${l.req}</span>
+          <span class="shlk" data-sid="${s.id}" data-pid="${p.id}" style="font-size:10px;color:#639922;cursor:pointer;margin-left:4px">📋</span></td>`;
         }).join('')}
         ${extra?`<td style="color:var(--t3);font-size:11px">${l.useFilter}</td>`:''}
         <td style="font-weight:500">${tot}</td><td>${sbadge(tot,p.min_stock)}</td>
@@ -480,9 +619,17 @@ function bAlerts(){
 
 function bOrders(){
   const l=t();
+  const orderSearch=S.orderSearch||'';
+  const filteredOrders=[...S.orders||[]].sort((a,b)=>b.id-a.id).filter(o=>{
+    if(!orderSearch) return true;
+    const num=String(o.order_number||o.id).padStart(4,'0');
+    const st=S.stores.find(x=>x.id===o.store_id);
+    return num.includes(orderSearch)||('#'+num).toLowerCase().includes(orderSearch.toLowerCase())||(st&&st.name.toLowerCase().includes(orderSearch.toLowerCase()));
+  });
   return`<div class="panel">
   <div class="ph"><span class="pht">${l.orders}</span>
-    <div style="display:flex;gap:6px">
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+      <input type="text" id="order-srch" placeholder="Zoek op # of winkel..." value="${S.orderSearch||''}" style="width:160px;height:30px;font-size:12px">
       <button class="btn bsm" onclick="showExportModal('allorders',null,'month')">📤 Export</button>
       <button class="btn bp bsm" id="add-order-btn">${l.newOrder}</button>
     </div>
@@ -490,7 +637,7 @@ function bOrders(){
   <div class="tw"><table>
     <colgroup><col style="width:55px"><col style="width:85px"><col style="width:120px"><col style="width:68px"><col style="width:180px"><col style="width:110px"><col style="width:155px"></colgroup>
     <thead><tr><th>#</th><th>${l.date}</th><th>${l.store}</th><th>${l.status}</th><th>${l.products}</th><th>${l.note}</th><th>${l.actions}</th></tr></thead>
-    <tbody>${S.orders.length?S.orders.map(o=>{
+    <tbody>${filteredOrders.length?filteredOrders.map(o=>{
       const st=S.stores.find(x=>x.id===o.store_id);
       const items=(S.orderItems||[]).filter(i=>i.order_id===o.id);
       const itemsHtml=items.map(i=>{const p=S.products.find(x=>x.id===i.product_id);return p?`${p.name} ×${i.quantity}`:''}).filter(Boolean).join(', ')||'—';
@@ -795,8 +942,9 @@ function bProducts(){
   const filtered=sorted.filter(p=>!ps||p.name.toLowerCase().includes(ps.toLowerCase())||p.sku.toLowerCase().includes(ps.toLowerCase())||p.category.toLowerCase().includes(ps.toLowerCase()));
   return`<div class="panel">
   <div class="ph"><span class="pht">${l.products}</span>
-    <div style="display:flex;gap:7px;align-items:center">
-      <input type="text" id="psrch" placeholder="${l.search}" value="${ps}" style="width:160px;height:30px;font-size:12px">
+    <div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap">
+      <input type="text" id="psrch" placeholder="${l.search}" value="${ps}" style="width:140px;height:30px;font-size:12px">
+      <button class="btn bsm" id="bulk-import-btn">📥 Import Excel</button>
       <button class="btn bp bsm" id="add-prod-btn">${l.addProduct}</button>
     </div>
   </div>
@@ -844,7 +992,7 @@ function buildStoreView(){
         <div style="font-size:12px;color:var(--t2)">${l.storeOnly}</div>
       </div>
     </div>
-    <div style="display:flex;gap:8px;align-items:center">${langBar()}<button class="btn bsm" id="refresh-btn">↻</button><button class="btn bsm" id="logout-btn">${l.out}</button></div>
+    <div style="display:flex;gap:8px;align-items:center">${langBar()}<button class="btn bsm" onclick="toggleDarkMode()">${S.darkMode?'☀️':'🌙'}</button><button class="btn bsm" id="refresh-btn">↻</button><button class="btn bsm" id="logout-btn">${l.out}</button></div>
   </div>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:1.1rem">
     <div class="met"><div class="met-l">${l.total}</div><div class="met-v">${storeTotal(acc.store_id)}</div></div>
@@ -1060,6 +1208,39 @@ function buildModal(){
       <button class="btn" id="mc">Annuleren</button>
       <button class="btn bp" id="do-export">⬇️ Downloaden</button>
     </div>`;}
+  else if(m.type==='bulk-import'){inner=`<h3>📥 Bulk import producten</h3>
+    <p style="font-size:12px;color:var(--t2);margin-bottom:1rem">Download eerst de template, vul hem in en upload hem terug.</p>
+    <div style="display:flex;gap:8px;margin-bottom:1rem">
+      <button class="btn bsm" id="dl-template">⬇️ Download template</button>
+    </div>
+    <div class="fr">
+      <label>Excel bestand uploaden</label>
+      <input type="file" id="import-file" accept=".xlsx,.xls" style="height:auto;padding:6px">
+    </div>
+    <div id="import-preview" style="margin-top:10px;font-size:12px;color:var(--t2)"></div>
+    <div class="fa"><button class="btn" id="mc">Annuleren</button><button class="btn bp" id="do-import" style="display:none">📥 Importeren</button></div>`;}
+  else if(m.type==='stock-history'){
+    const p=S.products.find(x=>x.id===m.pid);
+    const st=S.stores.find(x=>x.id===m.sid);
+    const hist=(S.stockHistory||[]).filter(h=>h.store_id===m.sid&&h.product_id===m.pid).slice(0,50);
+    inner=`<h3>📋 Voorraad geschiedenis</h3>
+    <p style="font-size:12px;color:var(--t2);margin-bottom:.9rem">${p?p.name:'—'} — ${st?st.name:'—'}</p>
+    <div style="border:0.5px solid var(--b3);border-radius:var(--r1);overflow:hidden;max-height:350px;overflow-y:auto">
+      ${hist.length?hist.map((h,i)=>{
+        const acc=S.accounts.find(x=>x.id===h.account_id);
+        const diff=h.new_quantity-h.old_quantity;
+        const diffStr=diff>0?`+${diff}`:String(diff);
+        const diffCol=diff>0?'#639922':diff<0?'#E24B4A':'#6b6b6b';
+        const ts=h.changed_at?new Date(h.changed_at).toLocaleString('nl-NL',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+        return`<div style="padding:8px 12px;border-bottom:${i<hist.length-1?'0.5px solid var(--b3)':'none'};display:flex;justify-content:space-between;align-items:center;gap:10px">
+          <div>
+            <div style="font-size:12px">${h.old_quantity} → <strong>${h.new_quantity}</strong> <span style="color:${diffCol};font-weight:500">(${diffStr})</span></div>
+            <div style="font-size:10px;color:var(--t3)">${acc?acc.display_name||acc.username:'—'} · ${ts}</div>
+          </div>
+        </div>`;
+      }).join(''):`<div style="padding:1.5rem;text-align:center;color:var(--t3);font-size:13px">Geen geschiedenis beschikbaar</div>`}
+    </div>
+    <div class="fa"><button class="btn" id="mc">Sluiten</button></div>`;}
   else if(m.type==='reset-stock'){inner=`<h3>⚠️ Stock resetten</h3>
     <div style="background:#FCEBEB;border:0.5px solid #F7C1C1;border-radius:var(--r1);padding:12px;margin-bottom:1rem;font-size:13px;color:#A32D2D">
       <strong>Let op!</strong> Als je doorgaat wordt alle voorraad van <strong>${m.storeName}</strong> teruggezet naar <strong>0</strong>. Dit kan niet ongedaan worden gemaakt.
@@ -1452,6 +1633,8 @@ function bind(){
     stopPolling();S.screen='portal';render();
   });
   const rb=g('refresh-btn');if(rb)rb.addEventListener('click',()=>loadAll());
+  const osr=g('order-srch');if(osr)osr.addEventListener('input',e=>{S.orderSearch=e.target.value;renderKeepFocus('order-srch')});
+  document.querySelectorAll('.dash-period').forEach(el=>el.addEventListener('click',()=>{S.dashPeriod=el.dataset.val;render()}));
   // Export page handlers
   document.querySelectorAll('.exp-type').forEach(el=>el.addEventListener('click',()=>{S.exportPage={...(S.exportPage||{}),type:el.dataset.val,status:'all'};render()}));
   document.querySelectorAll('.exp-format').forEach(el=>el.addEventListener('click',()=>{S.exportPage={...(S.exportPage||{}),format:el.dataset.val};render()}));
@@ -1518,6 +1701,9 @@ function bind(){
   const psr=g('psrch');if(psr)psr.addEventListener('input',e=>{S.productSearch=e.target.value;renderKeepFocus('psrch')});
   const fs=g('fstore');if(fs)fs.addEventListener('change',e=>{S.filterStore=e.target.value;render()});
   const fst=g('fstatus');if(fst)fst.addEventListener('change',e=>{S.filterStatus=e.target.value;render()});
+  document.querySelectorAll('.shlk').forEach(el=>el.addEventListener('click',()=>{
+    S.modal={type:'stock-history',sid:parseInt(el.dataset.sid),pid:parseInt(el.dataset.pid)};render();
+  }));
   document.querySelectorAll('.elk').forEach(el=>el.addEventListener('click',()=>{
     const[sid,pid]=el.dataset.edit.split('-').map(Number);
     const p=S.products.find(x=>x.id===pid),st=S.stores.find(x=>x.id===sid);
@@ -1608,12 +1794,18 @@ function bindModal(){
 
   const ss=g('ss');if(ss)ss.addEventListener('click',async()=>{
     const sid=S.modal.storeId,pid=S.modal.productId,nq=parseInt(gv('m-qty'));
-    const newQty=isNaN(nq)?0:nq;S.modal=null;render();
+    const newQty=isNaN(nq)?0:nq;
+    const oldQty=qty(sid,pid);
+    S.modal=null;render();
     try{
       const ex=await api(`stock?store_id=eq.${sid}&product_id=eq.${pid}`);
       if(ex&&ex.length){await api(`stock?store_id=eq.${sid}&product_id=eq.${pid}`,{method:'PATCH',body:JSON.stringify({quantity:newQty})})}
       else{await api('stock',{method:'POST',body:JSON.stringify({store_id:sid,product_id:pid,quantity:newQty})})}
-      S.stock[sid+'-'+pid]=newQty;showToast('✓ '+t().saved);render();
+      S.stock[sid+'-'+pid]=newQty;
+      // Log stock history
+      const[sh]=await api('stock_history',{method:'POST',body:JSON.stringify({store_id:sid,product_id:pid,account_id:S.session?.id,old_quantity:oldQty,new_quantity:newQty})});
+      if(sh)(S.stockHistory=S.stockHistory||[]).unshift(sh);
+      showToast('✓ '+t().saved);render();
     }catch(e){showToast('❌ '+t().errSave,'err')}
   });
 
@@ -1760,6 +1952,48 @@ function bindModal(){
     const ci=g('chat-inp');if(ci)ci.addEventListener('keydown',e=>{if(e.key==='Enter')sendMsg()});
   }
 
+  // Bulk import handlers
+  const bib=g('bulk-import-btn');if(bib)bib.addEventListener('click',()=>{S.modal={type:'bulk-import'};render();});
+  const dlTemplate=g('dl-template');
+  if(dlTemplate)dlTemplate.addEventListener('click',()=>{
+    const templateData=[
+      ['naam','sku','categorie','gewicht_kg','minimum_voorraad'],
+      ['Classic White Tee','APP-001','T-shirts','20','20'],
+      ['Slim Fit Jeans','APP-002','Jeans','32','15'],
+    ];
+    exportToExcel([{name:'Producten',data:templateData}],'product_import_template');
+  });
+  const importFile=g('import-file');
+  if(importFile)importFile.addEventListener('change',async(e)=>{
+    const file=e.target.files[0];if(!file)return;
+    const reader=new FileReader();
+    reader.onload=function(ev){
+      try{
+        const wb=XLSX.read(ev.target.result,{type:'binary'});
+        const ws=wb.Sheets[wb.SheetNames[0]];
+        const rows=XLSX.utils.sheet_to_json(ws,{header:1});
+        const dataRows=rows.slice(1).filter(r=>r[0]);
+        const preview=g('import-preview');
+        if(preview)preview.innerHTML=`<span style="color:#639922">✓ ${dataRows.length} producten gevonden — klik op Importeren</span>`;
+        const doImport=g('do-import');
+        if(doImport){doImport.style.display='inline-flex';doImport.dataset.rows=JSON.stringify(dataRows);}
+      }catch(err){const p=g('import-preview');if(p)p.innerHTML='<span style="color:#A32D2D">❌ Fout bij lezen bestand</span>';}
+    };
+    reader.readAsBinaryString(file);
+  });
+  const doImport=g('do-import');
+  if(doImport)doImport.addEventListener('click',async()=>{
+    const rows=JSON.parse(doImport.dataset.rows||'[]');
+    S.modal=null;render();
+    let imported=0;
+    for(const row of rows){
+      try{
+        const[np]=await api('products',{method:'POST',body:JSON.stringify({name:String(row[0]||''),sku:String(row[1]||''),category:String(row[2]||'Algemeen'),size:String(row[3]||'20'),min_stock:parseInt(row[4])||0})});
+        if(np){S.products.push(np);imported++;}
+      }catch(e){}
+    }
+    showToast(`✓ ${imported} producten geïmporteerd`);render();
+  });
   const confirmReset=g('confirm-reset');
   if(confirmReset)confirmReset.addEventListener('click',async()=>{
     const storeId=S.modal.storeId;
@@ -1886,6 +2120,9 @@ async function updateOrderStatus(id,status){
           if(ex&&ex.length){await api(`stock?store_id=eq.${sid}&product_id=eq.${pid}`,{method:'PATCH',body:JSON.stringify({quantity:newQty})})}
           else{await api('stock',{method:'POST',body:JSON.stringify({store_id:sid,product_id:pid,quantity:newQty})})}
           S.stock[key]=newQty;
+          // Log stock history for order completion
+          api('stock_history',{method:'POST',body:JSON.stringify({store_id:sid,product_id:pid,account_id:S.session?.id,old_quantity:newQty-addQty,new_quantity:newQty})})
+            .then(res=>{if(res&&res[0])(S.stockHistory=S.stockHistory||[]).unshift(res[0])}).catch(()=>{});
         }
         const st=S.stores.find(s=>s.id===o.store_id);
         await logOrderHistory(id,`✅ Geleverd — voorraad bijgewerkt voor ${st?st.name:'winkel'}`);
