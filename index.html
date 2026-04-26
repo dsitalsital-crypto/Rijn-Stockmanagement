@@ -87,7 +87,7 @@ const TR={
     stockTab:'Voorraad',alerts:'Meldingen',orders:'Orders',stores:'Winkels',accounts:'Accounts',
     stockOv:'Voorraad overzicht',allStores:'Alle winkels',allSt:'Alle',low:'Laag',outSt:'Uitverkocht',
     search:'Zoeken...',product:'Product',sku:'SKU',totalLbl:'Totaal',status:'Status',cat:'Categorie',
-    size:'Maat',min:'Min.',edit:'Bewerk',req:'aanvr.',useFilter:'gebruik filter',stockAlerts:'Voorraad meldingen',
+    size:'Gewicht',min:'Min.',edit:'Bewerk',req:'aanvr.',useFilter:'gebruik filter',stockAlerts:'Voorraad meldingen',
     active:'actief',noAlerts:'Geen meldingen',onlyLeft:'Nog maar',leftOf:'stuks (min.',reqBtn:'Aanvragen',
     newOrder:'+ Nieuwe order',date:'Datum',store:'Winkel',qty:'Stuks',note:'Notitie',actions:'Acties',
     noOrders:'Nog geen orders',markSent:'Verzonden',markDone:'Klaar',del:'Del',addStore:'+ Winkel toevoegen',
@@ -109,7 +109,7 @@ const TR={
     stockTab:'Stock',alerts:'Alerts',orders:'Orders',stores:'Stores',accounts:'Accounts',
     stockOv:'Inventory overview',allStores:'All stores',allSt:'All',low:'Low',outSt:'Out of stock',
     search:'Search...',product:'Product',sku:'SKU',totalLbl:'Total',status:'Status',cat:'Category',
-    size:'Size',min:'Min.',edit:'Edit',req:'req.',useFilter:'use filter',stockAlerts:'Stock alerts',
+    size:'Weight',min:'Min.',edit:'Edit',req:'req.',useFilter:'use filter',stockAlerts:'Stock alerts',
     active:'active',noAlerts:'No alerts',onlyLeft:'Only',leftOf:'left (min.',reqBtn:'Request',
     newOrder:'+ New order',date:'Date',store:'Store',qty:'Qty',note:'Note',actions:'Actions',
     noOrders:'No orders yet',markSent:'Mark sent',markDone:'Mark done',del:'Del',addStore:'+ Add store',
@@ -131,7 +131,7 @@ const TR={
     stockTab:'Stok',alerts:'Uyarılar',orders:'Siparişler',stores:'Mağazalar',accounts:'Hesaplar',
     stockOv:'Stok genel görünümü',allStores:'Tüm mağazalar',allSt:'Tümü',low:'Düşük',outSt:'Tükendi',
     search:'Ara...',product:'Ürün',sku:'SKU',totalLbl:'Toplam',status:'Durum',cat:'Kategori',
-    size:'Beden',min:'Min.',edit:'Düzenle',req:'talep',useFilter:'filtre kullan',stockAlerts:'Stok uyarıları',
+    size:'Ağırlık',min:'Min.',edit:'Düzenle',req:'talep',useFilter:'filtre kullan',stockAlerts:'Stok uyarıları',
     active:'aktif',noAlerts:'Uyarı yok',onlyLeft:'Yalnızca',leftOf:'adet kaldı (min.',reqBtn:'Talep Et',
     newOrder:'+ Yeni sipariş',date:'Tarih',store:'Mağaza',qty:'Adet',note:'Not',actions:'İşlemler',
     noOrders:'Henüz sipariş yok',markSent:'Gönderildi',markDone:'Tamamlandı',del:'Sil',addStore:'+ Mağaza ekle',
@@ -324,7 +324,7 @@ function bStock(){
     <tbody>${filtered.length?filtered.map(p=>{
       const tot=S.stores.reduce((a,s)=>a+qty(s.id,p.id),0);
       return`<tr>
-        <td><div style="font-weight:500">${p.name}</div><div style="font-size:10px;color:var(--t3)">${p.category}·${p.size}</div></td>
+        <td><div style="font-weight:500">${p.name}</div><div style="font-size:10px;color:var(--t3)">${p.category}·${p.size}kg</div></td>
         <td style="color:var(--t2)">${p.sku}</td>
         ${show.map(s=>{const q=qty(s.id,p.id),pct=Math.round(q/maxQ*100),c=barCol(q,p.min_stock);
           return`<td><div class="barcell"><span style="min-width:26px;text-align:right;font-weight:500;color:${p.min_stock>0&&q===0?RED:p.min_stock>0&&q<p.min_stock?AMBER:'var(--t1)'}">${q}</span><div class="barbg"><div class="barfill" style="width:${pct}%;background:${c}"></div></div></div>
@@ -481,7 +481,7 @@ function bStoreDetail(store,l){
     </div>
     <div class="tw"><table>
       <colgroup><col style="width:180px"><col style="width:80px"><col style="width:100px"><col style="width:60px"><col style="width:120px"><col style="width:65px"><col style="width:75px"></colgroup>
-      <thead><tr><th>${l.product}</th><th>${l.sku}</th><th>${l.cat}</th><th>${l.size}</th><th>${l.stockTab}</th><th>${l.min}</th><th>${l.status}</th></tr></thead>
+      <thead><tr><th>${l.product}</th><th>${l.sku}</th><th>${l.cat}</th><th>${l.size} (kg)</th><th>${l.stockTab}</th><th>${l.min}</th><th>${l.status}</th></tr></thead>
       <tbody>${sorted.length?sorted.map(p=>{
         const q=qty(store.id,p.id),pct=Math.round(q/maxQ*100),c=barCol(q,p.min_stock);
         return`<tr>
@@ -513,7 +513,7 @@ function bProducts(){
   </div>
   <div class="tw"><table>
     <colgroup><col style="width:170px"><col style="width:80px"><col style="width:110px"><col style="width:65px"><col style="width:65px"><col style="width:68px"><col style="width:100px"></colgroup>
-    <thead><tr><th>${l.name}</th><th>${l.sku}</th><th>${l.cat}</th><th>${l.size}</th><th>${l.min}</th><th>${l.totalLbl}</th><th></th></tr></thead>
+    <thead><tr><th>${l.name}</th><th>${l.sku}</th><th>${l.cat}</th><th>${l.size} (kg)</th><th>${l.min}</th><th>${l.totalLbl}</th><th></th></tr></thead>
     <tbody>${filtered.length?filtered.map(p=>`<tr>
       <td style="font-weight:500">${p.name}</td><td style="color:var(--t2)">${p.sku}</td>
       <td>${p.category}</td><td>${p.size}</td><td>${p.min_stock}</td>
@@ -571,7 +571,7 @@ function buildStoreView(){
       <tbody>${S.products.map(p=>{
         const q=qty(acc.store_id,p.id),pct=Math.round(q/maxQ*100),c=barCol(q,p.min_stock);
         return`<tr>
-          <td><div style="font-weight:500">${p.name}</div><div style="font-size:10px;color:var(--t3)">${p.sku}·${p.size}</div></td>
+          <td><div style="font-weight:500">${p.name}</div><div style="font-size:10px;color:var(--t3)">${p.sku}·${p.size}kg</div></td>
           <td>${p.category}</td>
           <td><div class="barcell"><span style="min-width:28px;font-weight:500;color:${p.min_stock>0&&q===0?RED:p.min_stock>0&&q<p.min_stock?AMBER:'var(--t1)'}">${q}</span><div class="barbg"><div class="barfill" style="width:${pct}%;background:${c}"></div></div></div></td>
           <td style="color:var(--t2)">${p.min_stock}</td>
@@ -687,7 +687,7 @@ function buildModal(){
     <div class="fr"><label>${l.name}</label><input type="text" id="m-name" value="${m.p.name}"></div>
     <div class="fr"><label>${l.sku}</label><input type="text" id="m-sku" value="${m.p.sku}"></div>
     <div class="fr"><label>${l.cat}</label><input type="text" id="m-cat" value="${m.p.category}"></div>
-    <div class="fr"><label>${l.size}</label><input type="text" id="m-size" value="${m.p.size}"></div>
+    <div class="fr"><label>${l.size} (kg)</label><input type="number" id="m-size" value="${m.p.size}" min="0" step="0.1"></div>
     <div class="fr"><label>${l.minStock}</label><input type="number" id="m-min" value="${m.p.min_stock}" min="0"></div>
     <div class="fa"><button class="btn" id="mc">${l.cancel}</button><button class="btn bp" id="uprod">${l.save}</button></div>`;}
 
@@ -700,7 +700,7 @@ function buildModal(){
     <div class="fr"><label>${l.name}</label><input type="text" id="m-name"></div>
     <div class="fr"><label>${l.sku}</label><input type="text" id="m-sku" placeholder="APP-007"></div>
     <div class="fr"><label>${l.cat}</label><input type="text" id="m-cat"></div>
-    <div class="fr"><label>${l.size}</label><input type="text" id="m-size"></div>
+    <div class="fr"><label>${l.size} (kg)</label><input type="number" id="m-size" value="20" min="0" step="0.1"></div>
     <div class="fr"><label>${l.minStock}</label><input type="number" id="m-min" value="0" min="0"></div>
     <div class="fa"><button class="btn" id="mc">${l.cancel}</button><button class="btn bp" id="sp">${l.add}</button></div>`;}
 
@@ -1004,7 +1004,7 @@ function bindModal(){
   const sp=g('sp');if(sp)sp.addEventListener('click',async()=>{
     const n=gv('m-name');if(!n)return;S.modal=null;render();
     const minRaw=gv('m-min');const minVal=minRaw===''?0:parseInt(minRaw);
-    try{const[np]=await api('products',{method:'POST',body:JSON.stringify({name:n,sku:gv('m-sku')||'APP-???',category:gv('m-cat')||t().general,size:gv('m-size')||'—',min_stock:isNaN(minVal)?0:minVal})});S.products.push(np);showToast('✓ '+t().saved);render()}catch(e){showToast('❌ '+t().errSave,'err')}
+    try{const[np]=await api('products',{method:'POST',body:JSON.stringify({name:n,sku:gv('m-sku')||'APP-???',category:gv('m-cat')||t().general,size:gv('m-size')||'20',min_stock:isNaN(minVal)?0:minVal})});S.products.push(np);showToast('✓ '+t().saved);render()}catch(e){showToast('❌ '+t().errSave,'err')}
   });
 
   const scomp=g('scomp');if(scomp)scomp.addEventListener('click',async()=>{
