@@ -764,6 +764,7 @@ function bStoreDetail(store,l){
           <option value="out" ${sf==='out'?'selected':''}>${l.outSt}</option>
         </select>
         <button class="btn bsm" onclick="showExportModal('store',${store.id})">📤 Voorraad</button>
+        <button class="btn bd bsm" onclick="confirmStockReset(${store.id},'${store.name}')">🔄 Reset stock</button>
         <button class="btn bsm" onclick="showExportModal('storeorders',${store.id})">📤 Orders</button>
       </div>
     </div>
@@ -1058,6 +1059,15 @@ function buildModal(){
     <div class="fa">
       <button class="btn" id="mc">Annuleren</button>
       <button class="btn bp" id="do-export">⬇️ Downloaden</button>
+    </div>`;}
+  else if(m.type==='reset-stock'){inner=`<h3>⚠️ Stock resetten</h3>
+    <div style="background:#FCEBEB;border:0.5px solid #F7C1C1;border-radius:var(--r1);padding:12px;margin-bottom:1rem;font-size:13px;color:#A32D2D">
+      <strong>Let op!</strong> Als je doorgaat wordt alle voorraad van <strong>${m.storeName}</strong> teruggezet naar <strong>0</strong>. Dit kan niet ongedaan worden gemaakt.
+    </div>
+    <p style="font-size:13px;color:var(--t2);margin-bottom:1rem">Weet je zeker dat je de volledige stock van <strong>${m.storeName}</strong> wil resetten naar 0?</p>
+    <div class="fa">
+      <button class="btn" id="mc">Annuleren</button>
+      <button class="btn" style="background:#A32D2D;color:#fff;border-color:#A32D2D" id="confirm-reset">Ja, reset naar 0</button>
     </div>`;}
   else if(m.type==='order-history'){
     const o=S.orders.find(x=>x.id===m.orderId);
@@ -1750,6 +1760,13 @@ function bindModal(){
     const ci=g('chat-inp');if(ci)ci.addEventListener('keydown',e=>{if(e.key==='Enter')sendMsg()});
   }
 
+  const confirmReset=g('confirm-reset');
+  if(confirmReset)confirmReset.addEventListener('click',async()=>{
+    const storeId=S.modal.storeId;
+    S.modal=null;render();
+    await resetStoreStock(storeId);
+  });
+
   const uprod=g('uprod');if(uprod)uprod.addEventListener('click',async()=>{
     const pid=S.modal.p.id;
     const minRaw=gv('m-min');const minVal=minRaw===''?0:parseInt(minRaw);
@@ -1808,6 +1825,24 @@ function bindModal(){
     if(!u||!p)return;S.modal=null;render();
     try{const[na]=await api('accounts',{method:'POST',body:JSON.stringify({id:'acc_'+Date.now(),username:u,password:p,display_name:n||u,role,store_id:sl?parseInt(sl):null})});S.accounts.push(na);showToast('✓ '+t().saved);render()}catch(e){showToast('❌ '+t().errSave,'err')}
   });
+}
+
+function confirmStockReset(storeId, storeName){
+  S.modal={type:'reset-stock', storeId, storeName};
+  render();
+}
+
+async function resetStoreStock(storeId){
+  try{
+    // Set all stock for this store to 0
+    await api(`stock?store_id=eq.${storeId}`,{method:'PATCH',body:JSON.stringify({quantity:0})});
+    // Update local state
+    Object.keys(S.stock).forEach(k=>{
+      if(k.startsWith(storeId+'-')) S.stock[k]=0;
+    });
+    showToast('✓ Stock gereset naar 0');
+    render();
+  }catch(e){showToast('❌ '+t().errSave,'err')}
 }
 
 async function updateComplaint(id,updates){
