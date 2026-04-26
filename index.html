@@ -879,7 +879,7 @@ async function doLogin(){
   
   // First try Supabase Auth (email-based)
   // Build email from username: username@company.handle.nl
-  const email=u.includes('@')?u:`${u}@${S.company?.handle||'rejoes'}.nl`;
+  const email=u.includes('@')?u.toLowerCase():`${u.toLowerCase()}@${S.company?.handle||'rejoes'}.nl`;
   
   try{
     const authData=await authLogin(email, p);
