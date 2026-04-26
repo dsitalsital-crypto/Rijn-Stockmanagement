@@ -103,6 +103,28 @@ const TR={
     sent:'Verzonden',done:'Klaar',ok:'OK',outLbl:'Uit',lowLbl:'Laag',general:'Algemeen',
     saved:'Opgeslagen',errSave:'Fout bij opslaan',loading:'Laden...',
     chat:'💬 Chat',sendMsg:'Stuur',msgPh:'Typ een bericht...',noMsgs:'Nog geen berichten',chatTitle:'Chat',
+    // New translations
+    checkedIn:'Ingecheckt',notSeen:'Niet gezien',attendance:'Aanwezigheid',
+    companyHandle:'${t().companyHandle}',companyPh:'${t().companyPh}',availableCompanies:'Beschikbare bedrijven',
+    inProgress:t().inProgress,resolved:'Opgelost',
+    addComplaint:'+ Klacht indienen',refresh:'Ververs',back:'← ${t().back}',
+    mergedOrder:'Samengevoegd met bestaande order!',stockUpdated:'Voorraad bijgewerkt',
+    noAccess:'Geen toegang',
+    whatExport:'${t().whatExport}',format:t().format,period:t().period,storeFilter:t().storeFilter,statusFilter:'STATUS',
+    today:'Vandaag',thisWeek:'Deze week',thisMonth:'Deze maand',thisYear:'Dit jaar',allTime:'Alles',
+    ordersFound:'orders gevonden',downloadAs:'Downloaden als',
+    complaintChat:'Klacht chat',orderChat:'Order chat',
+    firstLogin:'${t().firstLogin}',accountLinked:t().accountLinked,
+    exportCenter:'Export centrum',
+    openComplaints:'open',noComplaints:'Geen klachten',
+    stockUpdatedFor:'Voorraad bijgewerkt voor',
+    mergeNote:'Samengevoegd met bestaande order!',
+    attendanceToday:'Aanwezigheid vandaag',
+    inStock2:'Op voorraad',outOfStock2:'Uitverkocht',
+    goBtn:'${t().goBtn}',
+    exportAll:'Export alle',
+    downloadBtn:'⬇️ Downloaden als',
+    periodLabel_day:'Vandaag',periodLabel_week:'Week',periodLabel_month:'Maand',periodLabel_year:'Jaar',periodLabel_all:'Alles',
   },
   en:{app:'Apparel Stock',signIn:'Sign in',sub:'Sign in to continue',user:'Username',pass:'Password',
     userPh:'admin or store1…store19',quick:'Quick login',hint:'store1/store1pass through store19/store19pass',
@@ -125,6 +147,27 @@ const TR={
     sent:'Sent',done:'Done',ok:'OK',outLbl:'Out',lowLbl:'Low',general:'General',
     saved:'Saved',errSave:'Save error',loading:'Loading...',
     chat:'💬 Chat',sendMsg:'Send',msgPh:'Type a message...',noMsgs:'No messages yet',chatTitle:'Chat',
+    checkedIn:'Checked in',notSeen:'Not seen',attendance:'Attendance',
+    companyHandle:'Company name (handle)',companyPh:'e.g. rejoes',availableCompanies:'Available companies',
+    inProgress:'In progress',resolved:'Resolved',
+    addComplaint:'+ File complaint',refresh:'Refresh',back:'← Back',
+    mergedOrder:'Merged with existing order!',stockUpdated:'Stock updated',
+    noAccess:'No access',
+    whatExport:'WHAT DO YOU WANT TO EXPORT?',format:'FORMAT',period:'PERIOD',storeFilter:'STORE',statusFilter:'STATUS',
+    today:'Today',thisWeek:'This week',thisMonth:'This month',thisYear:'This year',allTime:'All',
+    ordersFound:'orders found',downloadAs:'Download as',
+    complaintChat:'Complaint chat',orderChat:'Order chat',
+    firstLogin:'First login',accountLinked:t().accountLinked,
+    exportCenter:'Export center',
+    openComplaints:'open',noComplaints:'No complaints',
+    stockUpdatedFor:'Stock updated for',
+    mergeNote:'Merged with existing order!',
+    attendanceToday:'Attendance today',
+    inStock2:'In stock',outOfStock2:'Out of stock',
+    goBtn:'Go →',
+    exportAll:'Export all',
+    downloadBtn:'⬇️ Download as',
+    periodLabel_day:'Today',periodLabel_week:'Week',periodLabel_month:'Month',periodLabel_year:'Year',periodLabel_all:'All',
   },
   tr:{app:'Giyim Stok',signIn:'Giriş Yap',sub:'Devam etmek için giriş yapın',user:'Kullanıcı adı',pass:'Şifre',
     userPh:'admin veya store1…store19',quick:'Hızlı giriş',hint:'store1/store1pass … store19/store19pass',
@@ -147,6 +190,27 @@ const TR={
     sent:'Gönderildi',done:'Tamamlandı',ok:'OK',outLbl:'Bitti',lowLbl:'Düşük',general:'Genel',
     saved:'Kaydedildi',errSave:'Kayıt hatası',loading:'Yükleniyor...',
     chat:'💬 Sohbet',sendMsg:'Gönder',msgPh:'Mesaj yazın...',noMsgs:'Henüz mesaj yok',chatTitle:'Sohbet',
+    checkedIn:'Giriş Yaptı',notSeen:'Görülmedi',attendance:'Devam',
+    companyHandle:'Şirket adı (handle)',companyPh:'örn. rejoes',availableCompanies:'Mevcut şirketler',
+    inProgress:'İşlemde',resolved:'Çözüldü',
+    addComplaint:'+ Şikayet Gönder',refresh:'Yenile',back:'← Geri',
+    mergedOrder:'Mevcut siparişle birleştirildi!',stockUpdated:'Stok güncellendi',
+    noAccess:'Erişim yok',
+    whatExport:'NE İHRAÇ ETMEK İSTİYORSUNUZ?',format:'FORMAT',period:'DÖNEM',storeFilter:'MAĞAZA',statusFilter:'DURUM',
+    today:'Bugün',thisWeek:'Bu hafta',thisMonth:'Bu ay',thisYear:'Bu yıl',allTime:'Tümü',
+    ordersFound:'sipariş bulundu',downloadAs:'İndir olarak',
+    complaintChat:'Şikayet sohbeti',orderChat:'Sipariş sohbeti',
+    firstLogin:'İlk giriş',accountLinked:t().accountLinked,
+    exportCenter:'İhracat merkezi',
+    openComplaints:'açık',noComplaints:'Şikayet yok',
+    stockUpdatedFor:'Stok güncellendi:',
+    mergeNote:'Mevcut siparişle birleştirildi!',
+    attendanceToday:'Bugünkü devam',
+    inStock2:'Stokta',outOfStock2:'Tükendi',
+    goBtn:'Git →',
+    exportAll:'Tümünü dışa aktar',
+    downloadBtn:'⬇️ İndir olarak',
+    periodLabel_day:'Bugün',periodLabel_week:'Hafta',periodLabel_month:'Ay',periodLabel_year:'Yıl',periodLabel_all:'Tümü',
   }
 };
 
@@ -273,18 +337,18 @@ function buildPortal(){
       <svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="#D4537E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><polyline points="9 22 9 12 15 12 15 22" stroke="#D4537E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </div>
     <div style="font-size:24px;font-weight:600;color:var(--t1)">Stock Manager</div>
-    <div style="font-size:13px;color:var(--t2);margin-top:6px">Voer de bedrijfsnaam in om in te loggen</div>
+    <div style="font-size:13px;color:var(--t2);margin-top:6px">${t().companyPh}</div>
   </div>
   ${S.handleErr?`<div style="background:#FCEBEB;border:0.5px solid #F7C1C1;border-radius:var(--r1);padding:9px 12px;font-size:12px;color:#A32D2D;margin-bottom:14px">${S.handleErr}</div>`:''}
   <div class="fr">
-    <label style="font-size:12px;color:var(--t2);margin-bottom:5px;display:block">Bedrijfsnaam (handle)</label>
+    <label style="font-size:12px;color:var(--t2);margin-bottom:5px;display:block">${t().companyHandle}</label>
     <div style="display:flex;gap:8px">
-      <input type="text" id="handle-inp" placeholder="bv. rejoes" value="${S.handleInput}" style="flex:1;text-transform:lowercase">
-      <button class="btn bp" id="handle-btn" style="height:34px;padding:0 16px">Ga →</button>
+      <input type="text" id="handle-inp" placeholder="${t().companyPh}" value="${S.handleInput}" style="flex:1;text-transform:lowercase">
+      <button class="btn bp" id="handle-btn" style="height:34px;padding:0 16px">${t().goBtn}</button>
     </div>
   </div>
   <div style="margin-top:1.5rem;border-top:0.5px solid var(--b3);padding-top:1rem">
-    <div style="font-size:11px;color:var(--t2);margin-bottom:8px;font-weight:500">Beschikbare bedrijven:</div>
+    <div style="font-size:11px;color:var(--t2);margin-bottom:8px;font-weight:500">${t().availableCompanies}:</div>
     <div id="company-list" style="display:flex;flex-wrap:wrap;gap:6px">
       <div class="loading" style="padding:.5rem"><div class="spinner" style="width:14px;height:14px"></div></div>
     </div>
@@ -295,7 +359,7 @@ function buildPortal(){
 
 function buildLogin(){const l=t();return`<div class="lcwrap"><div class="lcbox">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
-    <button class="btn bsm" id="back-portal-btn">← Terug</button>
+    <button class="btn bsm" id="back-portal-btn">← ${t().back}</button>
     ${langBar()}
   </div>
   <div style="text-align:center;margin-bottom:1.5rem">
@@ -476,12 +540,12 @@ function bExportPage(){
 
   return`<div>
   <div class="panel">
-    <div class="ph"><span class="pht">📤 Export centrum</span></div>
+    <div class="ph"><span class="pht">📤 ${t().exportCenter}</span></div>
     <div style="padding:1rem">
       
       <!-- Type -->
       <div style="margin-bottom:1.2rem">
-        <div style="font-size:12px;font-weight:500;color:var(--t2);margin-bottom:8px">WAT WIL JE EXPORTEREN?</div>
+        <div style="font-size:12px;font-weight:500;color:var(--t2);margin-bottom:8px">${t().whatExport}</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
           <button class="btn ${exp.type==='orders'?'bp':''} exp-type" data-val="orders">📦 Orders</button>
           <button class="btn ${exp.type==='stock'?'bp':''} exp-type" data-val="stock">📊 Voorraad</button>
@@ -511,10 +575,10 @@ function bExportPage(){
       ${exp.type!=='stock'?`<div style="margin-bottom:1.2rem">
         <div style="font-size:12px;font-weight:500;color:var(--t2);margin-bottom:8px">PERIODE</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <button class="btn ${exp.period==='day'?'bp':''} exp-period" data-val="day">Vandaag</button>
-          <button class="btn ${exp.period==='week'?'bp':''} exp-period" data-val="week">Deze week</button>
-          <button class="btn ${exp.period==='month'?'bp':''} exp-period" data-val="month">Deze maand</button>
-          <button class="btn ${exp.period==='year'?'bp':''} exp-period" data-val="year">Dit jaar</button>
+          <button class="btn ${exp.period==='day'?'bp':''} exp-period" data-val="day">${t().today}</button>
+          <button class="btn ${exp.period==='week'?'bp':''} exp-period" data-val="week">${t().thisWeek}</button>
+          <button class="btn ${exp.period==='month'?'bp':''} exp-period" data-val="month">${t().thisMonth}</button>
+          <button class="btn ${exp.period==='year'?'bp':''} exp-period" data-val="year">${t().thisYear}</button>
           <button class="btn ${exp.period==='all'?'bp':''} exp-period" data-val="all">Alles</button>
         </div>
       </div>`:''}
@@ -541,14 +605,14 @@ function bExportPage(){
 
       <!-- Preview count -->
       <div style="background:var(--bg2);border-radius:var(--r1);padding:12px 14px;margin-bottom:1.2rem;font-size:13px">
-        ${exp.type==='orders'?`📦 <strong>${ordersCount}</strong> orders gevonden`:''}
+        ${exp.type==='orders'?`📦 <strong>${ordersCount}</strong> ${t().ordersFound}`:''}
         ${exp.type==='stock'?`📊 Voorraad van <strong>${exp.storeId==='all'?S.stores.length+' winkels':'1 winkel'}</strong>`:''}
         ${exp.type==='complaints'?`📋 <strong>${complaintsCount}</strong> klachten gevonden`:''}
       </div>
 
       <!-- Download button -->
       <button class="btn bp" id="do-export-page" style="width:100%;justify-content:center;height:40px;font-size:14px">
-        ⬇️ Downloaden als ${exp.format==='excel'?'Excel':'PDF'}
+        ⬇️ ${t().downloadAs} ${exp.format==='excel'?'Excel':'PDF'}
       </button>
     </div>
   </div>
@@ -577,19 +641,19 @@ function bAttendance(){
   </div>
   <div class="panel">
     <div class="ph">
-      <span class="pht">🕐 Aanwezigheid vandaag</span>
-      <button class="btn bsm" id="refresh-att-btn">↻ Ververs</button>
+      <span class="pht">🕐 ${t().attendanceToday}</span>
+      <button class="btn bsm" id="refresh-att-btn">↻ ${t().refresh}</button>
     </div>
     <div class="tw"><table>
       <colgroup><col style="width:50px"><col style="width:200px"><col style="width:140px"><col style="width:100px"><col style="width:120px"></colgroup>
-      <thead><tr><th>#</th><th>Winkel</th><th>Account</th><th>Status</th><th>Eerste inlog</th></tr></thead>
+      <thead><tr><th>#</th><th>Winkel</th><th>Account</th><th>Status</th><th>${t().firstLogin}</th></tr></thead>
       <tbody>${storeList.map(({store,acc,checkin})=>`<tr style="background:${checkin?'':'rgba(224,36,36,0.04)'}">
         <td style="color:var(--t2)">${store.id}</td>
         <td style="font-weight:500">${store.name}</td>
         <td style="color:var(--t2)">${acc?acc.username:'—'}</td>
         <td>${checkin
-          ?'<span class="badge bok">✓ Ingecheckt</span>'
-          :'<span class="badge bout">✗ Niet gezien</span>'
+          ?'<span class="badge bok">✓ ${t().checkedIn}</span>'
+          :'<span class="badge bout">✗ ${t().notSeen}</span>'
         }</td>
         <td style="color:var(--t2)">${checkin
           ?new Date(checkin.logged_in_at).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'})
@@ -623,7 +687,7 @@ function bComplaints(){
         <td>${c.type==='website'?'🖥️ Website':c.type==='goods'?'📦 Goederen':'📝 Algemeen'}</td>
         <td style="font-weight:500">${c.subject}</td>
         <td style="font-size:11px;color:var(--t2)">${c.description}</td>
-        <td>${c.status==='open'?'<span class="badge bnew">Open</span>':c.status==='in_progress'?'<span class="badge bsent">In behandeling</span>':'<span class="badge bdone">Opgelost</span>'}</td>
+        <td>${c.status==='open'?'<span class="badge bnew">Open</span>':c.status==='in_progress'?'<span class="badge bsent">${t().inProgress}</span>':'<span class="badge bdone">Opgelost</span>'}</td>
         <td><div style="display:flex;gap:4px;flex-wrap:wrap">
           ${c.status==='open'?`<button class="btn bsm cprog" data-id="${c.id}">In behandeling</button>`:''}
           ${c.status!=='resolved'?`<button class="btn bsm cresolve" data-id="${c.id}" style="color:${GREEN}">Opgelost</button>`:''}
@@ -676,7 +740,7 @@ function bStoreDetail(store,l){
   });
   return`<div>
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;flex-wrap:wrap">
-    <button class="btn bsm" id="back-stores-btn">← Terug</button>
+    <button class="btn bsm" id="back-stores-btn">← ${t().back}</button>
     <span style="font-size:16px;font-weight:500">${store.name}</span>
     <span style="font-size:13px;color:var(--t2)">${store.city}</span>
     <span class="badge bstr">${storeTotal(store.id)} stuks</span>
@@ -756,7 +820,7 @@ function bAccounts(){
     <thead><tr><th>${l.user}</th><th>${l.name}</th><th>${l.pass}</th><th>${l.role}</th><th></th></tr></thead>
     <tbody>${S.accounts.map(a=>`<tr>
       <td style="font-weight:500">${a.username}</td><td>${a.display_name}</td>
-      <td style="font-family:monospace;font-size:11px;color:var(--t2)">${a.auth_id?'🔒 Supabase Auth':a.password}</td>
+      <td style="font-family:monospace;font-size:11px;color:var(--t2)">${a.auth_id?t().accountLinked:a.password}</td>
       <td>${a.role==='admin'?`<span class="badge badm">${l.admin}</span>`:a.role==='manager'?`<span class="badge bmgr">${t().manager}</span>`:`<span class="badge bstr">${l.storeRole}</span>`}</td>
       <td style="display:flex;gap:4px">${`<button class="btn bsm eacc" data-id="${a.id}">${l.edit}</button>`}${a.id!=='admin'?`<button class="btn bd bsm dacc" data-id="${a.id}">${l.remove}</button>`:''}</td>
     </tr>`).join('')}</tbody>
@@ -846,7 +910,7 @@ function buildStoreView(){
         <td>${c.type==='website'?'🖥️ Website':c.type==='goods'?'📦 Goederen':'📝 Algemeen'}</td>
         <td style="font-weight:500">${c.subject}</td>
         <td style="font-size:11px;color:var(--t2)">${c.description}</td>
-        <td>${c.status==='open'?'<span class="badge bnew">Open</span>':c.status==='in_progress'?'<span class="badge bsent">In behandeling</span>':'<span class="badge bdone">Opgelost</span>'}</td>
+        <td>${c.status==='open'?'<span class="badge bnew">Open</span>':c.status==='in_progress'?'<span class="badge bsent">${t().inProgress}</span>':'<span class="badge bdone">Opgelost</span>'}</td>
         <td><button class="btn bsm cchat" data-id="${c.id}">💬${(S.complaintMsgs||[]).filter(m=>m.complaint_id===c.id&&m.from_account==='admin'&&!m.is_read).length?` <span style="background:#D4537E;color:#fff;border-radius:10px;padding:0 4px;font-size:10px">${(S.complaintMsgs||[]).filter(m=>m.complaint_id===c.id&&m.from_account==='admin'&&!m.is_read).length}</span>`:''}</button></td>
       </tr>`).join(''):`<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--t3)">Geen klachten ingediend</td></tr>`}
       </tbody>
@@ -977,10 +1041,10 @@ function buildModal(){
     ${showPeriod?`<div style="margin-bottom:1rem">
       <div style="font-size:12px;color:var(--t2);margin-bottom:8px;font-weight:500">Periode:</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
-        <button class="btn ${m.exportPeriod==='day'?'bp':''} period-btn" data-period="day">Vandaag</button>
-        <button class="btn ${m.exportPeriod==='week'?'bp':''} period-btn" data-period="week">Deze week</button>
-        <button class="btn ${m.exportPeriod==='month'?'bp':''} period-btn" data-period="month">Deze maand</button>
-        <button class="btn ${m.exportPeriod==='year'?'bp':''} period-btn" data-period="year">Dit jaar</button>
+        <button class="btn ${m.exportPeriod==='day'?'bp':''} period-btn" data-period="day">${t().today}</button>
+        <button class="btn ${m.exportPeriod==='week'?'bp':''} period-btn" data-period="week">${t().thisWeek}</button>
+        <button class="btn ${m.exportPeriod==='month'?'bp':''} period-btn" data-period="month">${t().thisMonth}</button>
+        <button class="btn ${m.exportPeriod==='year'?'bp':''} period-btn" data-period="year">${t().thisYear}</button>
         <button class="btn ${m.exportPeriod==='all'?'bp':''} period-btn" data-period="all" style="grid-column:span 2">Alles</button>
         <button class="btn ${m.exportPeriod==='custom'?'bp':''} period-btn" data-period="custom" style="grid-column:span 2">📅 Specifieke datum</button>
       </div>
@@ -1193,7 +1257,7 @@ function exportToPDF(title, columns, rows, filename) {
 // Export orders
 function exportOrders(period, orderId) {
   let orders = orderId ? S.orders.filter(o=>o.id===orderId) : filterByPeriod(S.orders, 'created_at', period);
-  const periodLabel = {day:'Vandaag',week:'Deze week',month:'Deze maand',year:'Dit jaar',all:'Alles',single:'Order'}[period||'all'];
+  const periodLabel = {day:t().today,week:t().thisWeek,month:t().thisMonth,year:t().thisYear,all:t().allTime,single:'Order'}[period||'all'];
   const filename = `Orders_${periodLabel}_${today()}`;
   
   const rows = orders.map(o => {
@@ -1295,7 +1359,7 @@ function exportComplaints(period, complaintId) {
   const rows = complaints.map(c => {
     const st = S.stores.find(x=>x.id===c.store_id);
     const type = c.type==='website'?'Website':c.type==='goods'?'Goederen':'Algemeen';
-    const status = c.status==='open'?'Open':c.status==='in_progress'?'In behandeling':'Opgelost';
+    const status = c.status==='open'?'Open':c.status==='in_progress'?t().inProgress:'Opgelost';
     return [c.created_at?new Date(c.created_at).toLocaleDateString('nl-NL'):'', st?st.name:'—', type, c.subject, c.description, status, c.admin_response||'—'];
   });
 
@@ -1394,7 +1458,7 @@ function bind(){
       let items=filterByPeriod([...S.orders],'created_at',exp.period);
       if(exp.storeId!=='all') items=items.filter(o=>o.store_id===parseInt(exp.storeId));
       if(exp.status!=='all') items=items.filter(o=>o.status===exp.status);
-      const period={day:'Vandaag',week:'Week',month:'Maand',year:'Jaar',all:'Alles'}[exp.period];
+      const period={day:t().today,week:t().periodLabel_week,month:t().periodLabel_month,year:t().periodLabel_year,all:t().allTime}[exp.period];
       const storeName=exp.storeId==='all'?'Alle':(S.stores.find(s=>s.id==exp.storeId)?.name||'');
       const filename=`Orders_${storeName}_${period}_${today()}`;
       const cols=['Order #','Datum','Winkel','Producten','Notitie','Status'];
@@ -1418,14 +1482,14 @@ function bind(){
       let items=filterByPeriod([...(S.complaints||[])],'created_at',exp.period);
       if(exp.storeId!=='all') items=items.filter(c=>c.store_id===parseInt(exp.storeId));
       if(exp.status!=='all') items=items.filter(c=>c.status===exp.status);
-      const period={day:'Vandaag',week:'Week',month:'Maand',year:'Jaar',all:'Alles'}[exp.period];
+      const period={day:t().today,week:t().periodLabel_week,month:t().periodLabel_month,year:t().periodLabel_year,all:t().allTime}[exp.period];
       const storeName=exp.storeId==='all'?'Alle':(S.stores.find(s=>s.id==exp.storeId)?.name||'');
       const filename=`Klachten_${storeName}_${period}_${today()}`;
       const cols=['Datum','Winkel','Type','Onderwerp','Omschrijving','Status','Reactie'];
       const rows=items.map(c=>{
         const st=S.stores.find(x=>x.id===c.store_id);
         const type=c.type==='website'?'Website':c.type==='goods'?'Goederen':'Algemeen';
-        const stat=c.status==='open'?'Open':c.status==='in_progress'?'In behandeling':'Opgelost';
+        const stat=c.status==='open'?'Open':c.status==='in_progress'?t().inProgress:'Opgelost';
         return[c.created_at?new Date(c.created_at).toLocaleDateString('nl-NL'):'',st?st.name:'—',type,c.subject,c.description,stat,c.admin_response||'—'];
       });
       if(exp.format==='excel'){exportToExcel([{name:'Klachten',data:[cols,...rows]}],filename);}
@@ -1590,7 +1654,7 @@ function bindModal(){
             await api(`orders?id=eq.${existingOrder.id}`,{method:'PATCH',body:JSON.stringify({note:combined})});
             existingOrder.note=combined;
           }
-          showToast('✓ Samengevoegd met bestaande order!');render();
+          showToast('✓ '+t().mergedOrder);render();
         }else{
           // Create new order
           const store=S.stores.find(s=>s.id===sid);
@@ -1790,7 +1854,7 @@ async function updateOrderStatus(id,status){
         }
         const st=S.stores.find(s=>s.id===o.store_id);
         await logOrderHistory(id,`✅ Geleverd — voorraad bijgewerkt voor ${st?st.name:'winkel'}`);
-        showToast('✓ Voorraad bijgewerkt — '+(st?st.name:''));
+        showToast('✓ '+t().stockUpdatedFor+' '+(st?st.name:''));
       }else if(status==='sent'){
         await logOrderHistory(id,'📦 Order verzonden');
         showToast('✓ '+t().saved);
