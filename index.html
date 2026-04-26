@@ -169,7 +169,7 @@ const S={
   session:getSavedSession(),modal:null,search:'',productSearch:'',filterStore:'all',filterStatus:'all',
   adminSubTab:'stock',loginErr:'',loginUser:'',loginPass:'',
   lang:localStorage.getItem('appLang')||'nl',
-  stores:[],products:[],stock:{},orders:[],orderItems:[],accounts:[],messages:[],complaints:[],orderHistory:[],
+  stores:[],products:[],stock:{},orders:[],orderItems:[],accounts:[],messages:[],complaints:[],orderHistory:[],complaintMsgs:[],
   loading:true,
 };
 
@@ -194,12 +194,13 @@ async function api(path,opts={}){
 async function loadAll(){
   S.loading=true;render();
   try{
-    const[stores,products,stockRows,orders,orderItems,accounts,messages,complaints,orderHistory]=await Promise.all([
+    const[stores,products,stockRows,orders,orderItems,accounts,messages,complaints,orderHistory,complaintMsgs]=await Promise.all([
       api('stores?order=id'),api('products?order=name'),api('stock?select=*'),
       api('orders?order=id.desc'),api('order_items?select=*'),
       api('accounts?order=username'),api('messages?order=created_at'),
       api('complaints?order=id.desc'),
       api('order_history?order=created_at.desc'),
+      api('complaint_messages?order=created_at'),
     ]);
     S.stores=stores||[];S.products=products||[];
     S.stock={};(stockRows||[]).forEach(r=>{S.stock[r.store_id+'-'+r.product_id]=r.quantity});
@@ -207,6 +208,7 @@ async function loadAll(){
     S.accounts=accounts||[];S.messages=messages||[];
     S.complaints=complaints||[];
     S.orderHistory=orderHistory||[];
+    S.complaintMsgs=complaintMsgs||[];
   }catch(e){showToast('❌ '+e.message,'err')}
   S.loading=false;render();
 }
@@ -410,7 +412,8 @@ function bComplaints(){
         <td><div style="display:flex;gap:4px;flex-wrap:wrap">
           ${c.status==='open'?`<button class="btn bsm cprog" data-id="${c.id}">In behandeling</button>`:''}
           ${c.status!=='resolved'?`<button class="btn bsm cresolve" data-id="${c.id}" style="color:${GREEN}">Opgelost</button>`:''}
-          <button class="btn bsm creply" data-id="${c.id}">Reageer</button>
+          <button class="btn bsm cchat" data-id="${c.id}">💬${(S.complaintMsgs||[]).filter(m=>m.complaint_id===c.id&&m.from_account!=='admin'&&!m.is_read).length?` <span style="background:#D4537E;color:#fff;border-radius:10px;padding:0 4px;font-size:10px">${(S.complaintMsgs||[]).filter(m=>m.complaint_id===c.id&&m.from_account!=='admin'&&!m.is_read).length}</span>`:''}</button>
+          <button class="btn bd bsm dcomp" data-id="${c.id}">Del</button>
         </div></td>
       </tr>`;
     }).join(''):`<tr><td colspan="7" style="text-align:center;padding:1.5rem;color:var(--t3)">Geen klachten</td></tr>`}
@@ -611,14 +614,14 @@ function buildStoreView(){
     </div>
     <div class="tw"><table>
       <colgroup><col style="width:88px"><col style="width:90px"><col style="width:150px"><col style="width:180px"><col style="width:70px"><col style="width:150px"></colgroup>
-      <thead><tr><th>Datum</th><th>Type</th><th>Onderwerp</th><th>Omschrijving</th><th>Status</th><th>Reactie admin</th></tr></thead>
+      <thead><tr><th>Datum</th><th>Type</th><th>Onderwerp</th><th>Omschrijving</th><th>Status</th><th>Chat</th></tr></thead>
       <tbody>${myComplaints.length?myComplaints.map(c=>`<tr>
         <td style="color:var(--t2)">${c.created_at?new Date(c.created_at).toLocaleDateString('nl-NL'):''}</td>
         <td>${c.type==='website'?'🖥️ Website':c.type==='goods'?'📦 Goederen':'📝 Algemeen'}</td>
         <td style="font-weight:500">${c.subject}</td>
         <td style="font-size:11px;color:var(--t2)">${c.description}</td>
         <td>${c.status==='open'?'<span class="badge bnew">Open</span>':c.status==='in_progress'?'<span class="badge bsent">In behandeling</span>':'<span class="badge bdone">Opgelost</span>'}</td>
-        <td style="font-size:11px;color:var(--t2)">${c.admin_response||'—'}</td>
+        <td><button class="btn bsm cchat" data-id="${c.id}">💬${(S.complaintMsgs||[]).filter(m=>m.complaint_id===c.id&&m.from_account==='admin'&&!m.is_read).length?` <span style="background:#D4537E;color:#fff;border-radius:10px;padding:0 4px;font-size:10px">${(S.complaintMsgs||[]).filter(m=>m.complaint_id===c.id&&m.from_account==='admin'&&!m.is_read).length}</span>`:''}</button></td>
       </tr>`).join(''):`<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--t3)">Geen klachten ingediend</td></tr>`}
       </tbody>
     </table></div>
@@ -701,6 +704,29 @@ function buildModal(){
     <div class="fr"><label>${l.minStock}</label><input type="number" id="m-min" value="0" min="0"></div>
     <div class="fa"><button class="btn" id="mc">${l.cancel}</button><button class="btn bp" id="sp">${l.add}</button></div>`;}
 
+  else if(m.type==='complaint-chat'){
+    const c=(S.complaints||[]).find(x=>x.id===m.complaintId);
+    const st=S.stores.find(x=>x.id===c?.store_id);
+    const isAdmin=S.session.role==='admin';
+    const msgs=(S.complaintMsgs||[]).filter(x=>x.complaint_id===m.complaintId).sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
+    inner=`<h3>💬 Klacht chat — ${c?.subject||'—'}</h3>
+    <p style="font-size:12px;color:var(--t2);margin-bottom:.8rem">${st?st.name:'—'} · ${c?.type==='website'?'🖥️ Website':c?.type==='goods'?'📦 Goederen':'📝 Algemeen'}</p>
+    <div id="chat-msgs" style="height:260px;overflow-y:auto;border:0.5px solid var(--b3);border-radius:var(--r1);padding:10px;display:flex;flex-direction:column;gap:6px;margin-bottom:10px;background:var(--bg2)">
+      ${msgs.length?msgs.map(msg=>{
+        const fromMe=isAdmin?(msg.from_account==='admin'):(msg.from_account!=='admin');
+        const ts=msg.created_at?new Date(msg.created_at).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'}):'';
+        const senderName=msg.from_account==='admin'?'Admin':(st?.name||'Winkel');
+        return`<div class="chat-bubble" style="align-items:${fromMe?'flex-end':'flex-start'}">
+          <div class="chat-msg" style="background:${fromMe?'#D4537E':'var(--bg1)'};color:${fromMe?'#fff':'var(--t1)'};">${msg.message}</div>
+          <div style="font-size:10px;color:var(--t3);margin-top:2px">${senderName} · ${ts}</div>
+        </div>`;
+      }).join(''):`<div style="text-align:center;color:var(--t3);font-size:12px;padding:2rem">Nog geen berichten</div>`}
+    </div>
+    <div style="display:flex;gap:7px">
+      <input type="text" id="chat-inp" placeholder="Typ een bericht..." style="flex:1;height:34px;font-size:13px">
+      <button class="btn bp" id="send-msg">Stuur</button>
+    </div>
+    <div class="fa"><button class="btn" id="mc">Sluiten</button></div>`;}
   else if(m.type==='order-history'){
     const o=S.orders.find(x=>x.id===m.orderId);
     const st=S.stores.find(x=>x.id===o?.store_id);
@@ -811,6 +837,23 @@ function bind(){
   const aob=g('add-order-btn');if(aob)aob.addEventListener('click',()=>{S.modal={type:'add-order',storeId:S.stores[0]?.id,rows:[{productId:S.products[0]?.id,qty:1}]};render()});
   const sob=g('store-order-btn');if(sob)sob.addEventListener('click',()=>{S.modal={type:'add-order',storeId:S.session.store_id,rows:[{productId:S.products[0]?.id,qty:1}]};render()});
   const acb=g('add-complaint-btn');if(acb)acb.addEventListener('click',()=>{S.modal={type:'add-complaint'};render()});
+  document.querySelectorAll('.cchat').forEach(el=>el.addEventListener('click',async()=>{
+    const cid=parseInt(el.dataset.id);
+    // Mark messages as read
+    const isAdmin=S.session.role==='admin';
+    const unread=(S.complaintMsgs||[]).filter(m=>m.complaint_id===cid&&(isAdmin?m.from_account!=='admin':m.from_account==='admin')&&!m.is_read);
+    for(const m of unread){try{await api(`complaint_messages?id=eq.${m.id}`,{method:'PATCH',body:JSON.stringify({is_read:true})});m.is_read=true;}catch(e){}}
+    S.modal={type:'complaint-chat',complaintId:cid};render();
+  }));
+  document.querySelectorAll('.dcomp').forEach(el=>el.addEventListener('click',async()=>{
+    const cid=parseInt(el.dataset.id);
+    try{
+      await api(`complaints?id=eq.${cid}`,{method:'DELETE',headers:{}});
+      S.complaints=(S.complaints||[]).filter(c=>c.id!==cid);
+      S.complaintMsgs=(S.complaintMsgs||[]).filter(m=>m.complaint_id!==cid);
+      showToast('✓ Klacht verwijderd');render();
+    }catch(e){showToast('❌ Fout bij verwijderen','err')}
+  }));
   document.querySelectorAll('.cprog').forEach(el=>el.addEventListener('click',()=>updateComplaint(parseInt(el.dataset.id),{status:'in_progress'})));
   document.querySelectorAll('.cresolve').forEach(el=>el.addEventListener('click',()=>updateComplaint(parseInt(el.dataset.id),{status:'resolved'})));
   document.querySelectorAll('.creply').forEach(el=>el.addEventListener('click',()=>{
@@ -914,14 +957,20 @@ function bindModal(){
     const sendMsg=async()=>{
       const inp=g('chat-inp');if(!inp||!inp.value.trim())return;
       const msg=inp.value.trim();inp.value='';
+      const isComplaintChat=S.modal.type==='complaint-chat';
       try{
-        const[nm]=await api('messages',{method:'POST',body:JSON.stringify({from_account:S.session.id,order_id:S.modal.orderId,message:msg,is_read:false})});
-        (S.messages=S.messages||[]).push(nm);
+        let nm;
+        if(isComplaintChat){
+          [nm]=await api('complaint_messages',{method:'POST',body:JSON.stringify({from_account:S.session.id,complaint_id:S.modal.complaintId,message:msg,is_read:false})});
+          (S.complaintMsgs=S.complaintMsgs||[]).push(nm);
+        }else{
+          [nm]=await api('messages',{method:'POST',body:JSON.stringify({from_account:S.session.id,order_id:S.modal.orderId,message:msg,is_read:false})});
+          (S.messages=S.messages||[]).push(nm);
+        }
         const chatEl=g('chat-msgs');
         if(chatEl){
           const isAdmin=S.session.role==='admin';
-          const st=S.stores.find(x=>x.id===S.orders.find(o=>o.id===S.modal.orderId)?.store_id);
-          const senderName=isAdmin?t().admin:(st?.name||'Winkel');
+          const senderName=isAdmin?t().admin:(S.session.display_name||S.session.username);
           const ts=new Date().toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});
           const div=document.createElement('div');
           div.className='chat-bubble';div.style.alignItems='flex-end';
@@ -968,18 +1017,6 @@ function bindModal(){
       const[nc]=await api('complaints',{method:'POST',body:JSON.stringify({store_id:S.session.store_id,type,subject,description:desc,status:'open',created_at:new Date().toISOString()})});
       (S.complaints=S.complaints||[]).unshift(nc);
       showToast('✓ Klacht ingediend');render();
-    }catch(e){showToast('❌ Fout bij opslaan','err')}
-  });
-
-  const sreply=g('sreply');if(sreply)sreply.addEventListener('click',async()=>{
-    const cid=S.modal.c.id;
-    const reply=gv('m-reply');
-    S.modal=null;render();
-    try{
-      await api(`complaints?id=eq.${cid}`,{method:'PATCH',body:JSON.stringify({admin_response:reply,status:'in_progress'})});
-      const c=(S.complaints||[]).find(x=>x.id===cid);
-      if(c){c.admin_response=reply;c.status='in_progress';}
-      showToast('✓ Reactie opgeslagen');render();
     }catch(e){showToast('❌ Fout bij opslaan','err')}
   });
 
