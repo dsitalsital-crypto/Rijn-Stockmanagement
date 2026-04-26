@@ -871,6 +871,7 @@ function buildModal(){
     const rows=m.rows||[{productId:S.products[0]?.id,qty:1}];
     const sf=isStore?`<input type="hidden" id="m-store" value="${S.session.store_id}">`
       :`<div class="fr"><label>${l.store}</label><select id="m-store">${S.stores.map(s=>`<option value="${s.id}" ${(isEdit?o.store_id:m.storeId)==s.id?'selected':''}>${s.name}</option>`).join('')}</select></div>`;
+    const savedNote=m._savedNote!==undefined?m._savedNote:(isEdit?o.note||'':'');
     inner=`<h3>${isEdit?l.editOrder:l.addOrder}</h3>
     ${sf}
     <div id="req-rows">${rows.map((r,i)=>`
@@ -884,7 +885,7 @@ function buildModal(){
         ${rows.length>1?`<button class="btn bd bsm rm-row" data-i="${i}" style="margin-bottom:1px">✕</button>`:''}
       </div>`).join('')}</div>
     <button class="btn bsm" id="add-row-btn" style="margin-bottom:10px">+ ${l.product}</button>
-    <div class="fr"><label>${l.note}</label><textarea id="m-note">${isEdit?o.note||'':''}</textarea></div>
+    <div class="fr"><label>${l.note}</label><textarea id="m-note">${savedNote}</textarea></div>
     <div class="fa"><button class="btn" id="mc">${l.cancel}</button><button class="btn bp" id="sorder">${isEdit?l.save:l.submit}</button></div>`;}
 
   else if(m.type==='chat'){
@@ -1607,7 +1608,20 @@ function bindModal(){
     }catch(e){showToast('❌ '+t().errSave,'err')}
   });
 
-  const arb=g('add-row-btn');if(arb)arb.addEventListener('click',()=>{S.modal.rows=[...(S.modal.rows||[]),{productId:S.products[0]?.id,qty:1}];render();bindModal()});
+  const arb=g('add-row-btn');if(arb)arb.addEventListener('click',()=>{
+    // Save current row values before re-render
+    const currentRows=[...document.querySelectorAll('.req-row')].map((_,i)=>({
+      productId:parseInt(document.querySelectorAll('.rp-product')[i]?.value)||S.products[0]?.id,
+      qty:parseInt(document.querySelectorAll('.rp-qty')[i]?.value)||1
+    }));
+    // Save note and store
+    const currentNote=gv('m-note');
+    const currentStore=g('m-store')?g('m-store').value:null;
+    S.modal.rows=[...currentRows,{productId:S.products[0]?.id,qty:1}];
+    S.modal._savedNote=currentNote;
+    S.modal._savedStore=currentStore;
+    render();bindModal();
+  });
   
   // Export modal handlers
   const fmtExcel=g('fmt-excel');if(fmtExcel)fmtExcel.addEventListener('click',()=>{S.exportFormat='excel';render();bindModal()});
@@ -1626,7 +1640,20 @@ function bindModal(){
     else if(m.exportType==='complaint') exportComplaints(null, m.exportId);
     else if(m.exportType==='allcomplaints') exportComplaints(period, null);
   });
-  document.querySelectorAll('.rm-row').forEach(el=>el.addEventListener('click',()=>{const i=parseInt(el.dataset.i);S.modal.rows=S.modal.rows.filter((_,idx)=>idx!==i);render();bindModal()}));
+  document.querySelectorAll('.rm-row').forEach(el=>el.addEventListener('click',()=>{
+    const i=parseInt(el.dataset.i);
+    // Save current row values before re-render
+    const currentRows=[...document.querySelectorAll('.req-row')].map((_,j)=>({
+      productId:parseInt(document.querySelectorAll('.rp-product')[j]?.value)||S.products[0]?.id,
+      qty:parseInt(document.querySelectorAll('.rp-qty')[j]?.value)||1
+    }));
+    const currentNote=gv('m-note');
+    const currentStore=g('m-store')?g('m-store').value:null;
+    S.modal.rows=currentRows.filter((_,idx)=>idx!==i);
+    S.modal._savedNote=currentNote;
+    S.modal._savedStore=currentStore;
+    render();bindModal();
+  }));
 
   const sm=g('send-msg');
   if(sm){
