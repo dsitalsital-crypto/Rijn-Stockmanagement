@@ -169,7 +169,7 @@ const S={
   session:getSavedSession(),modal:null,search:'',productSearch:'',filterStore:'all',filterStatus:'all',
   adminSubTab:'stock',loginErr:'',loginUser:'',loginPass:'',
   lang:localStorage.getItem('appLang')||'nl',
-  stores:[],products:[],stock:{},orders:[],orderItems:[],accounts:[],messages:[],complaints:[],orderHistory:[],complaintMsgs:[],company:null,
+  stores:[],products:[],stock:{},orders:[],orderItems:[],accounts:[],messages:[],complaints:[],orderHistory:[],complaintMsgs:[],attendance:[],company:null,
   loading:true,
 };
 
@@ -196,13 +196,14 @@ async function loadAll(){
   const cid=S.company?.id;
   const companyFilter=cid?`&company_id=eq.${cid}`:'';
   try{
-    const[stores,products,stockRows,orders,orderItems,accounts,messages,complaints,orderHistory,complaintMsgs]=await Promise.all([
+    const[stores,products,stockRows,orders,orderItems,accounts,messages,complaints,orderHistory,complaintMsgs,attendance]=await Promise.all([
       api('stores?order=id'+companyFilter),api('products?order=name'),api('stock?select=*'),
       api('orders?order=id.desc'),api('order_items?select=*'),
       api('accounts?order=username'+companyFilter),api('messages?order=created_at'),
       api('complaints?order=id.desc'),
       api('order_history?order=created_at.desc'),
       api('complaint_messages?order=created_at'),
+      api('attendance?order=logged_in_at.desc&login_date=eq.'+today()),
     ]);
     S.stores=stores||[];S.products=products||[];
     S.stock={};(stockRows||[]).forEach(r=>{S.stock[r.store_id+'-'+r.product_id]=r.quantity});
@@ -211,6 +212,7 @@ async function loadAll(){
     S.complaints=complaints||[];
     S.orderHistory=orderHistory||[];
     S.complaintMsgs=complaintMsgs||[];
+    S.attendance=attendance||[];
   }catch(e){showToast('❌ '+e.message,'err')}
   S.loading=false;render();
 }
@@ -339,9 +341,10 @@ function buildAdmin(){
     <button class="tab ${sub==='stores'?'on':''}" data-sub="stores">${l.stores}</button>
     <button class="tab ${sub==='products'?'on':''}" data-sub="products">${l.products}</button>
     ${S.session.role==='admin'?`<button class="tab ${sub==='accounts'?'on':''}" data-sub="accounts">${l.accounts}</button>`:''}
+    ${S.session.role==='admin'?`<button class="tab ${sub==='attendance'?'on':''}" data-sub="attendance">🕐 Aanwezigheid</button>`:''}
     <button class="tab ${sub==='complaints'?'on':''}" data-sub="complaints">📋 Klachten${(S.complaints||[]).filter(c=>c.status==='open').length?` <span style="background:#D4537E;color:#fff;border-radius:10px;padding:0 5px;font-size:10px;margin-left:3px">${(S.complaints||[]).filter(c=>c.status==='open').length}</span>`:''}</button>
   </div>
-  ${sub==='stock'?bStock():sub==='alerts'?bAlerts():sub==='orders'?bOrders():sub==='stores'?bStores():sub==='products'?bProducts():sub==='complaints'?bComplaints():bAccounts()}
+  ${sub==='stock'?bStock():sub==='alerts'?bAlerts():sub==='orders'?bOrders():sub==='stores'?bStores():sub==='products'?bProducts():sub==='complaints'?bComplaints():sub==='attendance'?bAttendance():bAccounts()}
   ${S.modal?buildModal():''}
 </div>`}
 
@@ -435,6 +438,53 @@ function bOrders(){
     }).join(''):`<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--t3)">${l.noOrders}</td></tr>`}
     </tbody>
   </table></div>
+</div>`}
+
+function bAttendance(){
+  const todayStr=today();
+  const todayAttendance=[...S.attendance||[]].filter(a=>a.login_date===todayStr);
+  
+  // Build list of all stores with their check-in time (or not checked in)
+  const storeList=[...S.stores].sort((a,b)=>a.id-b.id).map(store=>{
+    const acc=S.accounts.find(a=>a.store_id===store.id&&a.role==='store');
+    const checkin=todayAttendance.find(a=>a.store_id===store.id);
+    return{store,acc,checkin};
+  });
+
+  const checkedIn=storeList.filter(x=>x.checkin).length;
+  const notIn=storeList.filter(x=>!x.checkin).length;
+
+  return`<div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:1rem">
+    <div class="met"><div class="met-l">Datum</div><div class="met-v" style="font-size:15px">${new Date().toLocaleDateString('nl-NL',{weekday:'short',day:'numeric',month:'short'})}</div></div>
+    <div class="met"><div class="met-l" style="color:#3B6D11">Ingecheckt</div><div class="met-v" style="color:${GREEN}">${checkedIn}</div></div>
+    <div class="met"><div class="met-l" style="color:#A32D2D">Niet gezien</div><div class="met-v" style="color:${RED}">${notIn}</div></div>
+    <div class="met"><div class="met-l">Totaal winkels</div><div class="met-v">${S.stores.length}</div></div>
+  </div>
+  <div class="panel">
+    <div class="ph">
+      <span class="pht">🕐 Aanwezigheid vandaag</span>
+      <button class="btn bsm" id="refresh-att-btn">↻ Ververs</button>
+    </div>
+    <div class="tw"><table>
+      <colgroup><col style="width:50px"><col style="width:200px"><col style="width:140px"><col style="width:100px"><col style="width:120px"></colgroup>
+      <thead><tr><th>#</th><th>Winkel</th><th>Account</th><th>Status</th><th>Eerste inlog</th></tr></thead>
+      <tbody>${storeList.map(({store,acc,checkin})=>`<tr style="background:${checkin?'':'rgba(224,36,36,0.04)'}">
+        <td style="color:var(--t2)">${store.id}</td>
+        <td style="font-weight:500">${store.name}</td>
+        <td style="color:var(--t2)">${acc?acc.username:'—'}</td>
+        <td>${checkin
+          ?'<span class="badge bok">✓ Ingecheckt</span>'
+          :'<span class="badge bout">✗ Niet gezien</span>'
+        }</td>
+        <td style="color:var(--t2)">${checkin
+          ?new Date(checkin.logged_in_at).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'})
+          :'—'
+        }</td>
+      </tr>`).join('')}
+      </tbody>
+    </table></div>
+  </div>
 </div>`}
 
 function bComplaints(){
@@ -827,6 +877,16 @@ function doLogin(){
   const l=t(),u=gv('lu'),p=gv('lp');
   const acc=S.accounts.find(x=>x.username===u&&x.password===p);
   if(acc){S.session=acc;saveSession(acc);localStorage.setItem('appCompany',JSON.stringify(S.company));S.screen='app';S.loginErr='';render();
+    // Log attendance for store accounts (first login of the day only)
+    if(acc.role==='store'&&acc.store_id){
+      const todayStr=today();
+      const alreadyLogged=S.attendance&&S.attendance.some(a=>a.account_id===acc.id&&a.login_date===todayStr);
+      if(!alreadyLogged){
+        api('attendance',{method:'POST',body:JSON.stringify({account_id:acc.id,store_id:acc.store_id,company_id:S.company?.id,login_date:todayStr})})
+          .then(res=>{if(res&&res[0])S.attendance=[res[0],...(S.attendance||[])]})
+          .catch(()=>{});
+      }
+    }
     if(acc.role==='admin'){
       setTimeout(()=>{lastOrderCount=S.orders.length;lastMsgCount=(S.messages||[]).filter(m=>m.from_account!=='admin'&&!m.is_read).length;startPolling();requestNotificationPermission();},2000);
     }
@@ -891,6 +951,12 @@ function bind(){
 
   const lo=g('logout-btn');if(lo)lo.addEventListener('click',()=>{S.session=null;S.modal=null;clearSession();localStorage.removeItem('appCompany');stopPolling();S.screen='portal';render()});
   const rb=g('refresh-btn');if(rb)rb.addEventListener('click',()=>loadAll());
+  const rab=g('refresh-att-btn');if(rab)rab.addEventListener('click',async()=>{
+    try{
+      const att=await api('attendance?order=logged_in_at.desc&login_date=eq.'+today());
+      S.attendance=att||[];render();
+    }catch(e){}
+  });
   document.querySelectorAll('[data-sub]').forEach(el=>el.addEventListener('click',()=>{S.adminSubTab=el.dataset.sub;render()}));
   const sr=g('srch');if(sr)sr.addEventListener('input',e=>{S.search=e.target.value;renderKeepFocus('srch')});
   const psr=g('psrch');if(psr)psr.addEventListener('input',e=>{S.productSearch=e.target.value;renderKeepFocus('psrch')});
