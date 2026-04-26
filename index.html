@@ -638,7 +638,11 @@ function buildModal(){
 function doLogin(){
   const l=t(),u=gv('lu'),p=gv('lp');
   const acc=S.accounts.find(x=>x.username===u&&x.password===p);
-  if(acc){S.session=acc;saveSession(acc);S.loginErr='';render();}
+  if(acc){S.session=acc;saveSession(acc);S.loginErr='';render();
+    if(acc.role==='admin'){
+      setTimeout(()=>{lastOrderCount=S.orders.length;lastMsgCount=(S.messages||[]).filter(m=>m.from_account!=='admin'&&!m.is_read).length;startPolling();requestNotificationPermission();},2000);
+    }
+  }
   else{S.loginErr=l.loginErr;S.loginUser=u;S.loginPass=p;render();}
 }
 
@@ -646,7 +650,7 @@ function bind(){
   document.querySelectorAll('[data-lang]').forEach(el=>el.addEventListener('click',()=>{S.lang=el.dataset.lang;localStorage.setItem('appLang',S.lang);render()}));
   const lb=g('login-btn');if(lb){lb.addEventListener('click',doLogin);['lu','lp'].forEach(id=>{const e=g(id);if(e)e.addEventListener('keydown',ev=>{if(ev.key==='Enter')doLogin()})})}
 
-  const lo=g('logout-btn');if(lo)lo.addEventListener('click',()=>{S.session=null;S.modal=null;clearSession();render()});
+  const lo=g('logout-btn');if(lo)lo.addEventListener('click',()=>{S.session=null;S.modal=null;clearSession();stopPolling();render()});
   const rb=g('refresh-btn');if(rb)rb.addEventListener('click',()=>loadAll());
   document.querySelectorAll('[data-sub]').forEach(el=>el.addEventListener('click',()=>{S.adminSubTab=el.dataset.sub;render()}));
   const sr=g('srch');if(sr)sr.addEventListener('input',e=>{S.search=e.target.value;renderKeepFocus('srch')});
@@ -854,7 +858,103 @@ async function deleteAccount(id){
   catch(e){showToast('❌ '+t().errSave,'err')}
 }
 
+// Auto-refresh polling every 30 seconds for admin
+let pollInterval=null;
+let lastOrderCount=0;
+let lastMsgCount=0;
+
+function startPolling(){
+  if(pollInterval)clearInterval(pollInterval);
+  pollInterval=setInterval(async()=>{
+    if(!S.session||S.session.role!=='admin')return;
+    try{
+      const[orders,messages]=await Promise.all([
+        api('orders?order=id.desc'),
+        api('messages?order=created_at'),
+      ]);
+      const newOrders=orders||[];
+      const newMsgs=messages||[];
+      const newOrderCount=newOrders.length;
+      const newMsgCount=newMsgs.filter(m=>m.from_account!=='admin'&&!m.is_read).length;
+
+      // Check for new orders
+      if(lastOrderCount>0&&newOrderCount>lastOrderCount){
+        const diff=newOrderCount-lastOrderCount;
+        showNotification(`📦 ${diff} nieuwe order${diff>1?'s':''}!`);
+      }
+      // Check for new unread messages
+      const prevUnread=(S.messages||[]).filter(m=>m.from_account!=='admin'&&!m.is_read).length;
+      if(prevUnread<newMsgCount){
+        const diff=newMsgCount-prevUnread;
+        showNotification(`💬 ${diff} nieuw bericht${diff>1?'en':''}!`);
+      }
+
+      lastOrderCount=newOrderCount;
+      S.orders=newOrders;
+      S.messages=newMsgs;
+      // Only re-render the badge counts (non-disruptive)
+      updateBadges();
+    }catch(e){}
+  },30000);
+}
+
+function stopPolling(){
+  if(pollInterval){clearInterval(pollInterval);pollInterval=null;}
+}
+
+function updateBadges(){
+  // Update tab badges without full re-render
+  const or=openReqs();
+  const unread=(S.messages||[]).filter(m=>m.from_account!=='admin'&&!m.is_read).length;
+  const orderTab=document.querySelector('[data-sub="orders"]');
+  if(orderTab){
+    const badges=[];
+    if(or)badges.push(`<span style="background:#3C3489;color:#fff;border-radius:10px;padding:0 5px;font-size:10px;margin-left:3px">${or}</span>`);
+    if(unread)badges.push(`<span style="background:#D4537E;color:#fff;border-radius:10px;padding:0 5px;font-size:10px;margin-left:3px">💬${unread}</span>`);
+    orderTab.innerHTML=TR[S.lang].orders+badges.join('');
+  }
+}
+
+function showNotification(msg){
+  // Play a soft beep
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    const osc=ctx.createOscillator();
+    const gain=ctx.createGain();
+    osc.connect(gain);gain.connect(ctx.destination);
+    osc.frequency.value=880;gain.gain.value=0.1;
+    osc.start();gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.3);
+    osc.stop(ctx.currentTime+0.3);
+  }catch(e){}
+  // Show toast notification
+  const el=document.createElement('div');
+  el.style.cssText='position:fixed;top:1.5rem;right:1.5rem;background:#D4537E;color:#fff;border-radius:var(--r1);padding:12px 18px;font-size:13px;font-weight:500;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,0.2);cursor:pointer;font-family:var(--sans)';
+  el.textContent=msg;
+  el.addEventListener('click',()=>{el.remove();S.adminSubTab='orders';render()});
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),6000);
+  // Browser notification if permitted
+  if(Notification.permission==='granted'){
+    new Notification('Apparel Stock',{body:msg,icon:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><rect x="2" y="9" width="16" height="10" rx="2" fill="%23D4537E"/></svg>'});
+  }
+}
+
+function requestNotificationPermission(){
+  if('Notification' in window&&Notification.permission==='default'){
+    Notification.requestPermission();
+  }
+}
+
 loadAll();
+// Start polling after initial load
+setTimeout(()=>{
+  if(S.session?.role==='admin'){
+    lastOrderCount=S.orders.length;
+    lastMsgCount=(S.messages||[]).filter(m=>m.from_account!=='admin'&&!m.is_read).length;
+    startPolling();
+    requestNotificationPermission();
+  }
+},3000);
 </script>
 </body>
 </html>
