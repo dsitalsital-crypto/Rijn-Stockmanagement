@@ -875,8 +875,8 @@ function buildStoreView(){
   <div class="panel">
     <div class="ph"><span class="pht">${l.myOrders}</span></div>
     <div class="tw"><table>
-      <colgroup><col style="width:55px"><col style="width:85px"><col style="width:68px"><col style="width:180px"><col style="width:110px"><col style="width:100px"></colgroup>
-      <thead><tr><th>#</th><th>${l.date}</th><th>${l.status}</th><th>${l.products}</th><th>${l.note}</th><th>Acties</th></tr></thead>
+      <colgroup><col style="width:45px"><col style="width:75px"><col style="width:65px"><col style="width:auto"><col style="width:80px"></colgroup>
+      <thead><tr><th>#</th><th>${l.date}</th><th>${l.status}</th><th>${l.products}</th><th>💬</th></tr></thead>
       <tbody>${myOrders.length?myOrders.map(o=>{
         const items=(S.orderItems||[]).filter(i=>i.order_id===o.id);
         const itemsHtml=items.map(i=>{const p=S.products.find(x=>x.id===i.product_id);return p?`${p.name} ×${i.quantity}`:''}).filter(Boolean).join(', ')||'—';
@@ -887,13 +887,12 @@ function buildStoreView(){
           <td style="color:var(--t2)">${o.created_at}</td>
           <td>${rbadge(o.status)}</td>
           <td style="font-size:11px">${itemsHtml}</td>
-          <td style="font-size:11px;color:var(--t2)">${o.note||'—'}</td>
-          <td style="display:flex;gap:4px">
+          <td><div style="display:flex;gap:3px;flex-wrap:wrap">
             ${o.status==='new'?`<button class="btn bsm eorder" data-id="${o.id}">${l.edit}</button>`:''}
-            <button class="btn bsm hist-order" data-id="${o.id}">📋</button>
             <button class="btn bsm chat-order" data-id="${o.id}">💬${unread?` <span style="background:#D4537E;color:#fff;border-radius:10px;padding:0 4px;font-size:10px">${unread}</span>`:''}</button>
-          </td>
-        </tr>`;
+          </div></td>
+        </tr>
+        ${o.note?`<tr style="background:var(--bg2)"><td colspan="5" style="padding:3px 12px 8px;font-size:11px;color:var(--t2)">📝 <em>${o.note}</em></td></tr>`:''}`
       }).join(''):`<tr><td colspan="5" style="text-align:center;padding:1.5rem;color:var(--t3)">${l.noMyOrders}</td></tr>`}
       </tbody>
     </table></div>
