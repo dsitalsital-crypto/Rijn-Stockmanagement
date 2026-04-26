@@ -238,7 +238,7 @@ const S={
   session:getSavedSession(),modal:null,search:'',productSearch:'',filterStore:'all',filterStatus:'all',
   adminSubTab:'stock',loginErr:'',loginUser:'',loginPass:'',
   lang:localStorage.getItem('appLang')||'nl',
-  stores:[],products:[],stock:{},orders:[],orderItems:[],accounts:[],messages:[],complaints:[],orderHistory:[],complaintMsgs:[],attendance:[],stockHistory:[],company:null,
+  stores:[],products:[],stock:{},orders:[],orderItems:[],accounts:[],messages:[],complaints:[],orderHistory:[],complaintMsgs:[],attendance:[],stockHistory:[],weeklyRequests:[],company:null,
   loading:true,
 };
 
@@ -269,7 +269,7 @@ async function loadAll(){
   const cid=S.company?.id;
   const companyFilter=cid?`&company_id=eq.${cid}`:'';
   try{
-    const[stores,products,stockRows,orders,orderItems,accounts,messages,complaints,orderHistory,complaintMsgs,attendance,stockHistory]=await Promise.all([
+    const[stores,products,stockRows,orders,orderItems,accounts,messages,complaints,orderHistory,complaintMsgs,attendance,stockHistory,weeklyRequests]=await Promise.all([
       api('stores?order=id'+companyFilter),api('products?order=name'),api('stock?select=*'),
       api('orders?order=id.desc'),api('order_items?select=*'),
       api('accounts?order=username'+companyFilter),api('messages?order=created_at'),
@@ -278,6 +278,7 @@ async function loadAll(){
       api('complaint_messages?order=created_at'),
       api('attendance?order=logged_in_at.desc&login_date=eq.'+today()),
       api('stock_history?order=changed_at.desc&limit=200'),
+      api('weekly_product_requests?order=quantity.desc'),
     ]);
     S.stores=stores||[];S.products=products||[];
     S.stock={};(stockRows||[]).forEach(r=>{S.stock[r.store_id+'-'+r.product_id]=r.quantity});
@@ -288,6 +289,7 @@ async function loadAll(){
     S.complaintMsgs=complaintMsgs||[];
     S.attendance=attendance||[];
     S.stockHistory=stockHistory||[];
+    S.weeklyRequests=weeklyRequests||[];
   }catch(e){showToast('❌ '+e.message,'err')}
   S.loading=false;render();
 }
@@ -438,9 +440,10 @@ function buildAdmin(){
     ${S.session.role==='admin'?`<button class="tab ${sub==='accounts'?'on':''}" data-sub="accounts">${l.accounts}</button>`:''}
     ${S.session.role==='admin'?`<button class="tab ${sub==='attendance'?'on':''}" data-sub="attendance">🕐 Aanwezigheid</button>`:''}
     ${(S.session.role==='admin'||S.session.role==='manager')?`<button class="tab ${sub==='export'?'on':''}" data-sub="export">📤 Export</button>`:''}
+    ${(S.session.role==='admin'||S.session.role==='manager')?`<button class="tab ${sub==='weekly'?'on':''}" data-sub="weekly">📈 Weeklijst</button>`:''}
     <button class="tab ${sub==='complaints'?'on':''}" data-sub="complaints">📋 Klachten${(S.complaints||[]).filter(c=>c.status==='open').length?` <span style="background:#D4537E;color:#fff;border-radius:10px;padding:0 5px;font-size:10px;margin-left:3px">${(S.complaints||[]).filter(c=>c.status==='open').length}</span>`:''}</button>
   </div>
-  ${sub==='dashboard'?bDashboard():sub==='stock'?bStock():sub==='alerts'?bAlerts():sub==='orders'?bOrders():sub==='stores'?bStores():sub==='products'?bProducts():sub==='complaints'?bComplaints():sub==='attendance'?bAttendance():sub==='export'?bExportPage():bAccounts()}
+  ${sub==='dashboard'?bDashboard():sub==='stock'?bStock():sub==='alerts'?bAlerts():sub==='orders'?bOrders():sub==='stores'?bStores():sub==='products'?bProducts():sub==='complaints'?bComplaints():sub==='attendance'?bAttendance():sub==='export'?bExportPage():sub==='weekly'?bWeeklyRequests():bAccounts()}
   ${S.modal?buildModal():''}
 </div>`}
 
@@ -664,6 +667,54 @@ function bOrders(){
     }).join(''):`<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--t3)">${l.noOrders}</td></tr>`}
     </tbody>
   </table></div>
+</div>`}
+
+function bWeeklyRequests(){
+  const requests=[...(S.weeklyRequests||[])].sort((a,b)=>b.quantity-a.quantity);
+  const weekStart=getWeekStart();
+  const thisWeek=requests.filter(r=>r.week_start===weekStart);
+  const maxQty=Math.max(1,...thisWeek.map(r=>r.quantity));
+  
+  // Calculate next reset time
+  const nextReset=getNextSunday();
+  const now=new Date();
+  const diff=nextReset-now;
+  const days=Math.floor(diff/(1000*60*60*24));
+  const hours=Math.floor((diff%(1000*60*60*24))/(1000*60*60));
+  const mins=Math.floor((diff%(1000*60*60))/(1000*60));
+  const resetStr=days>0?`${days}d ${hours}u`:`${hours}u ${mins}m`;
+
+  return`<div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:1rem">
+    <div class="met"><div class="met-l">Producten aangevraagd</div><div class="met-v">${thisWeek.length}</div></div>
+    <div class="met"><div class="met-l">Totaal stuks</div><div class="met-v">${thisWeek.reduce((a,r)=>a+r.quantity,0)}</div></div>
+    <div class="met"><div class="met-l">Reset over</div><div class="met-v" style="font-size:15px">${resetStr}</div></div>
+    <div class="met"><div class="met-l">Week van</div><div class="met-v" style="font-size:14px">${weekStart}</div></div>
+  </div>
+
+  <div class="panel">
+    <div class="ph">
+      <span class="pht">📈 Meest aangevraagde producten — deze week</span>
+      <button class="btn bd bsm" id="reset-weekly-btn">🔄 Reset nu</button>
+    </div>
+    <div class="tw"><table>
+      <colgroup><col style="width:40px"><col style="width:180px"><col style="width:80px"><col style="width:100px"><col style="width:auto"><col style="width:80px"></colgroup>
+      <thead><tr><th>#</th><th>Product</th><th>SKU</th><th>Aangevraagd</th><th>Grafiek</th><th>Week van</th></tr></thead>
+      <tbody>${thisWeek.length?thisWeek.map((r,i)=>{
+        const pct=Math.round(r.quantity/maxQty*100);
+        const col=i===0?'#D4537E':i===1?'#E07B39':i===2?'#E0B939':'#639922';
+        return`<tr>
+          <td style="font-weight:600;color:${col}">${i+1}</td>
+          <td style="font-weight:500">${r.product_name}</td>
+          <td style="color:var(--t2);font-size:11px">${r.product_sku}</td>
+          <td><span style="font-size:18px;font-weight:600;color:${col}">${r.quantity}</span> <span style="font-size:11px;color:var(--t3)">stuks</span></td>
+          <td><div class="barbg" style="min-width:80px"><div class="barfill" style="width:${pct}%;background:${col}"></div></div></td>
+          <td style="font-size:11px;color:var(--t3)">${r.week_start}</td>
+        </tr>`;
+      }).join(''):`<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--t3)">Nog geen aanvragen deze week</td></tr>`}
+      </tbody>
+    </table></div>
+  </div>
 </div>`}
 
 function bExportPage(){
@@ -1571,6 +1622,61 @@ function showExportModal(type, id, period) {
   render();
 }
 
+function getWeekStart(){
+  const now=new Date();
+  const day=now.getDay(); // 0=Sunday
+  const diff=now.getDate()-day+(day===0?-6:1); // Monday
+  const monday=new Date(now.setDate(diff));
+  return monday.toISOString().slice(0,10);
+}
+
+function getNextSunday(){
+  const now=new Date();
+  const day=now.getDay();
+  const diff=day===0?0:7-day;
+  const sunday=new Date();
+  sunday.setDate(now.getDate()+diff);
+  sunday.setHours(23,59,0,0);
+  return sunday;
+}
+
+async function checkWeeklyReset(){
+  // Check if it's Sunday after 23:59 and reset if needed
+  const now=new Date();
+  if(now.getDay()===0){ // Sunday
+    const hours=now.getHours();
+    const mins=now.getMinutes();
+    if(hours===23&&mins>=59){
+      // Reset all weekly requests
+      try{
+        await api('weekly_product_requests',{method:'DELETE',headers:{}});
+        S.weeklyRequests=[];
+        showToast('✓ Wekelijkse statistieken gereset');
+      }catch(e){}
+    }
+  }
+}
+
+async function logWeeklyRequest(orderItems){
+  const weekStart=getWeekStart();
+  for(const item of orderItems){
+    const p=S.products.find(x=>x.id===item.product_id);
+    if(!p)continue;
+    // Check if entry exists for this product this week
+    const existing=(S.weeklyRequests||[]).find(r=>r.product_id===item.product_id&&r.week_start===weekStart);
+    try{
+      if(existing){
+        const newQty=existing.quantity+item.quantity;
+        await api(`weekly_product_requests?id=eq.${existing.id}`,{method:'PATCH',body:JSON.stringify({quantity:newQty})});
+        existing.quantity=newQty;
+      }else{
+        const[nr]=await api('weekly_product_requests',{method:'POST',body:JSON.stringify({product_id:item.product_id,product_name:p.name,product_sku:p.sku,quantity:item.quantity,week_start:weekStart})});
+        if(nr)(S.weeklyRequests=S.weeklyRequests||[]).push(nr);
+      }
+    }catch(e){}
+  }
+}
+
 async function lookupCompany(handle){
   if(!handle.trim()){S.handleErr='Voer een bedrijfsnaam in.';render();return;}
   try{
@@ -1635,6 +1741,15 @@ function bind(){
   const rb=g('refresh-btn');if(rb)rb.addEventListener('click',()=>loadAll());
   const osr=g('order-srch');if(osr)osr.addEventListener('input',e=>{S.orderSearch=e.target.value;renderKeepFocus('order-srch')});
   document.querySelectorAll('.dash-period').forEach(el=>el.addEventListener('click',()=>{S.dashPeriod=el.dataset.val;render()}));
+  const rwb=g('reset-weekly-btn');
+  if(rwb)rwb.addEventListener('click',async()=>{
+    if(!confirm('Weet je zeker dat je de weeklijst wil resetten? Dit kan niet ongedaan worden gemaakt.'))return;
+    try{
+      await api('weekly_product_requests',{method:'DELETE',headers:{}});
+      S.weeklyRequests=[];
+      showToast('✓ Weeklijst gereset');render();
+    }catch(e){showToast('❌ '+t().errSave,'err')}
+  });
   // Export page handlers
   document.querySelectorAll('.exp-type').forEach(el=>el.addEventListener('click',()=>{S.exportPage={...(S.exportPage||{}),type:el.dataset.val,status:'all'};render()}));
   document.querySelectorAll('.exp-format').forEach(el=>el.addEventListener('click',()=>{S.exportPage={...(S.exportPage||{}),format:el.dataset.val};render()}));
@@ -1867,6 +1982,7 @@ function bindModal(){
           for(const r of rows){const[item]=await api('order_items',{method:'POST',body:JSON.stringify({order_id:newOrder.id,...r})});newItems.push(item)}
           S.orders.unshift(newOrder);S.orderItems.push(...newItems);
           await logOrderHistory(newOrder.id,`📝 Order aangemaakt door ${S.session.display_name||S.session.username}`);
+          await logWeeklyRequest(rows);
           if(S.session.role==='admin')S.adminSubTab='orders';
           showToast('✓ '+t().saved);render();
         }
@@ -2248,7 +2364,7 @@ if(_savedSession&&_savedCompany){
     S.company=JSON.parse(_savedCompany);
     S.session=_savedSession;
     S.screen='login';
-    loadAll().then(()=>cleanOldRecords());
+    loadAll().then(()=>{cleanOldRecords();checkWeeklyReset();});
   }catch(e){S.screen='portal';S.loading=false;render();}
 }else{
   S.loading=false;
