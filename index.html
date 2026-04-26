@@ -349,9 +349,10 @@ function buildAdmin(){
     <button class="tab ${sub==='products'?'on':''}" data-sub="products">${l.products}</button>
     ${S.session.role==='admin'?`<button class="tab ${sub==='accounts'?'on':''}" data-sub="accounts">${l.accounts}</button>`:''}
     ${S.session.role==='admin'?`<button class="tab ${sub==='attendance'?'on':''}" data-sub="attendance">🕐 Aanwezigheid</button>`:''}
+    ${(S.session.role==='admin'||S.session.role==='manager')?`<button class="tab ${sub==='export'?'on':''}" data-sub="export">📤 Export</button>`:''}
     <button class="tab ${sub==='complaints'?'on':''}" data-sub="complaints">📋 Klachten${(S.complaints||[]).filter(c=>c.status==='open').length?` <span style="background:#D4537E;color:#fff;border-radius:10px;padding:0 5px;font-size:10px;margin-left:3px">${(S.complaints||[]).filter(c=>c.status==='open').length}</span>`:''}</button>
   </div>
-  ${sub==='stock'?bStock():sub==='alerts'?bAlerts():sub==='orders'?bOrders():sub==='stores'?bStores():sub==='products'?bProducts():sub==='complaints'?bComplaints():sub==='attendance'?bAttendance():bAccounts()}
+  ${sub==='stock'?bStock():sub==='alerts'?bAlerts():sub==='orders'?bOrders():sub==='stores'?bStores():sub==='products'?bProducts():sub==='complaints'?bComplaints():sub==='attendance'?bAttendance():sub==='export'?bExportPage():bAccounts()}
   ${S.modal?buildModal():''}
 </div>`}
 
@@ -451,6 +452,106 @@ function bOrders(){
     }).join(''):`<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--t3)">${l.noOrders}</td></tr>`}
     </tbody>
   </table></div>
+</div>`}
+
+function bExportPage(){
+  const exp=S.exportPage||{type:'orders',format:'excel',period:'month',storeId:'all',status:'all'};
+  
+  // Get filtered data based on current selections
+  function getFilteredOrders(){
+    let items=filterByPeriod([...S.orders],'created_at',exp.period);
+    if(exp.storeId!=='all') items=items.filter(o=>o.store_id===parseInt(exp.storeId));
+    if(exp.status!=='all') items=items.filter(o=>o.status===exp.status);
+    return items;
+  }
+  function getFilteredComplaints(){
+    let items=filterByPeriod([...(S.complaints||[])],'created_at',exp.period);
+    if(exp.storeId!=='all') items=items.filter(c=>c.store_id===parseInt(exp.storeId));
+    if(exp.status!=='all') items=items.filter(c=>c.status===exp.status);
+    return items;
+  }
+
+  const ordersCount=getFilteredOrders().length;
+  const complaintsCount=getFilteredComplaints().length;
+
+  return`<div>
+  <div class="panel">
+    <div class="ph"><span class="pht">📤 Export centrum</span></div>
+    <div style="padding:1rem">
+      
+      <!-- Type -->
+      <div style="margin-bottom:1.2rem">
+        <div style="font-size:12px;font-weight:500;color:var(--t2);margin-bottom:8px">WAT WIL JE EXPORTEREN?</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn ${exp.type==='orders'?'bp':''} exp-type" data-val="orders">📦 Orders</button>
+          <button class="btn ${exp.type==='stock'?'bp':''} exp-type" data-val="stock">📊 Voorraad</button>
+          <button class="btn ${exp.type==='complaints'?'bp':''} exp-type" data-val="complaints">📋 Klachten</button>
+        </div>
+      </div>
+
+      <!-- Format -->
+      <div style="margin-bottom:1.2rem">
+        <div style="font-size:12px;font-weight:500;color:var(--t2);margin-bottom:8px">FORMAAT</div>
+        <div style="display:flex;gap:6px">
+          <button class="btn ${exp.format==='excel'?'bp':''} exp-format" data-val="excel">📊 Excel (.xlsx)</button>
+          <button class="btn ${exp.format==='pdf'?'bp':''} exp-format" data-val="pdf">📄 PDF</button>
+        </div>
+      </div>
+
+      <!-- Store filter -->
+      <div style="margin-bottom:1.2rem">
+        <div style="font-size:12px;font-weight:500;color:var(--t2);margin-bottom:8px">WINKEL</div>
+        <select id="exp-store" style="height:34px;font-size:13px;max-width:300px">
+          <option value="all" ${exp.storeId==='all'?'selected':''}>Alle winkels</option>
+          ${S.stores.map(s=>`<option value="${s.id}" ${exp.storeId==s.id?'selected':''}>${s.name}</option>`).join('')}
+        </select>
+      </div>
+
+      <!-- Period -->
+      ${exp.type!=='stock'?`<div style="margin-bottom:1.2rem">
+        <div style="font-size:12px;font-weight:500;color:var(--t2);margin-bottom:8px">PERIODE</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn ${exp.period==='day'?'bp':''} exp-period" data-val="day">Vandaag</button>
+          <button class="btn ${exp.period==='week'?'bp':''} exp-period" data-val="week">Deze week</button>
+          <button class="btn ${exp.period==='month'?'bp':''} exp-period" data-val="month">Deze maand</button>
+          <button class="btn ${exp.period==='year'?'bp':''} exp-period" data-val="year">Dit jaar</button>
+          <button class="btn ${exp.period==='all'?'bp':''} exp-period" data-val="all">Alles</button>
+        </div>
+      </div>`:''}
+
+      <!-- Status filter for orders/complaints -->
+      ${exp.type==='orders'?`<div style="margin-bottom:1.2rem">
+        <div style="font-size:12px;font-weight:500;color:var(--t2);margin-bottom:8px">STATUS</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn ${exp.status==='all'?'bp':''} exp-status" data-val="all">Alle</button>
+          <button class="btn ${exp.status==='new'?'bp':''} exp-status" data-val="new">Nieuw</button>
+          <button class="btn ${exp.status==='sent'?'bp':''} exp-status" data-val="sent">Verzonden</button>
+          <button class="btn ${exp.status==='done'?'bp':''} exp-status" data-val="done">Klaar</button>
+        </div>
+      </div>`:''}
+      ${exp.type==='complaints'?`<div style="margin-bottom:1.2rem">
+        <div style="font-size:12px;font-weight:500;color:var(--t2);margin-bottom:8px">STATUS</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn ${exp.status==='all'?'bp':''} exp-status" data-val="all">Alle</button>
+          <button class="btn ${exp.status==='open'?'bp':''} exp-status" data-val="open">Open</button>
+          <button class="btn ${exp.status==='in_progress'?'bp':''} exp-status" data-val="in_progress">In behandeling</button>
+          <button class="btn ${exp.status==='resolved'?'bp':''} exp-status" data-val="resolved">Opgelost</button>
+        </div>
+      </div>`:''}
+
+      <!-- Preview count -->
+      <div style="background:var(--bg2);border-radius:var(--r1);padding:12px 14px;margin-bottom:1.2rem;font-size:13px">
+        ${exp.type==='orders'?`📦 <strong>${ordersCount}</strong> orders gevonden`:''}
+        ${exp.type==='stock'?`📊 Voorraad van <strong>${exp.storeId==='all'?S.stores.length+' winkels':'1 winkel'}</strong>`:''}
+        ${exp.type==='complaints'?`📋 <strong>${complaintsCount}</strong> klachten gevonden`:''}
+      </div>
+
+      <!-- Download button -->
+      <button class="btn bp" id="do-export-page" style="width:100%;justify-content:center;height:40px;font-size:14px">
+        ⬇️ Downloaden als ${exp.format==='excel'?'Excel':'PDF'}
+      </button>
+    </div>
+  </div>
 </div>`}
 
 function bAttendance(){
@@ -590,13 +691,15 @@ function bStoreDetail(store,l){
     <div class="ph">
       <span class="pht">${l.stockOv} — ${store.name}</span>
       <div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap">
-        <input type="text" id="store-srch" placeholder="${l.search}" value="${sw}" style="width:160px;height:30px;font-size:12px">
+        <input type="text" id="store-srch" placeholder="${l.search}" value="${sw}" style="width:130px;height:30px;font-size:12px">
         <select id="store-sf" style="height:30px;font-size:12px">
           <option value="all" ${sf==='all'?'selected':''}>${l.allSt}</option>
           <option value="ok" ${sf==='ok'?'selected':''}>${l.ok}</option>
           <option value="low" ${sf==='low'?'selected':''}>${l.low}</option>
           <option value="out" ${sf==='out'?'selected':''}>${l.outSt}</option>
         </select>
+        <button class="btn bsm" onclick="showExportModal('store',${store.id})">📤 Voorraad</button>
+        <button class="btn bsm" onclick="showExportModal('storeorders',${store.id})">📤 Orders</button>
       </div>
     </div>
     <div class="tw"><table>
@@ -852,13 +955,9 @@ function buildModal(){
     </div>
     <div class="fa"><button class="btn" id="mc">Sluiten</button></div>`;}
   else if(m.type==='export'){
-    const isOrder=m.exportType==='order';
-    const isStore=m.exportType==='store';
-    const isAllStores=m.exportType==='allstores';
-    const isComplaint=m.exportType==='complaint';
-    const isAllComplaints=m.exportType==='allcomplaints';
-    const isAllOrders=m.exportType==='allorders';
     const showPeriod=!m.exportId;
+    const showStoreFilter=['allorders','allstores','allcomplaints'].includes(m.exportType);
+    const exportStore2=m.exportStoreFilter||'all';
     inner=`<h3>📤 Exporteren</h3>
     <div style="margin-bottom:1rem">
       <div style="font-size:12px;color:var(--t2);margin-bottom:8px;font-weight:500">Formaat:</div>
@@ -867,15 +966,29 @@ function buildModal(){
         <button class="btn ${S.exportFormat==='pdf'?'bp':''}" id="fmt-pdf" style="flex:1;justify-content:center">📄 PDF</button>
       </div>
     </div>
+    ${showStoreFilter?`<div style="margin-bottom:1rem">
+      <div style="font-size:12px;color:var(--t2);margin-bottom:8px;font-weight:500">Winkel:</div>
+      <select id="exp-store" style="width:100%">
+        <option value="all">Alle winkels</option>
+        ${S.stores.map(s=>`<option value="${s.id}" ${exportStore2==s.id?'selected':''}>${s.name}</option>`).join('')}
+      </select>
+    </div>`:''}
     ${showPeriod?`<div style="margin-bottom:1rem">
       <div style="font-size:12px;color:var(--t2);margin-bottom:8px;font-weight:500">Periode:</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
         <button class="btn ${m.exportPeriod==='day'?'bp':''} period-btn" data-period="day">Vandaag</button>
         <button class="btn ${m.exportPeriod==='week'?'bp':''} period-btn" data-period="week">Deze week</button>
         <button class="btn ${m.exportPeriod==='month'?'bp':''} period-btn" data-period="month">Deze maand</button>
         <button class="btn ${m.exportPeriod==='year'?'bp':''} period-btn" data-period="year">Dit jaar</button>
         <button class="btn ${m.exportPeriod==='all'?'bp':''} period-btn" data-period="all" style="grid-column:span 2">Alles</button>
+        <button class="btn ${m.exportPeriod==='custom'?'bp':''} period-btn" data-period="custom" style="grid-column:span 2">📅 Specifieke datum</button>
       </div>
+      ${m.exportPeriod==='custom'?`<div style="display:flex;gap:8px;align-items:center">
+        <div style="flex:1"><label style="font-size:11px;color:var(--t2);display:block;margin-bottom:3px">Van:</label>
+        <input type="date" id="exp-from" value="${m.exportFrom||today()}" style="width:100%"></div>
+        <div style="flex:1"><label style="font-size:11px;color:var(--t2);display:block;margin-bottom:3px">Tot:</label>
+        <input type="date" id="exp-to" value="${m.exportTo||today()}" style="width:100%"></div>
+      </div>`:''}
     </div>`:''}
     <div class="fa">
       <button class="btn" id="mc">Annuleren</button>
@@ -1147,6 +1260,31 @@ function exportAllStores(period) {
   }
 }
 
+// Export orders per store
+function exportOrdersPerStore(storeId, period) {
+  const store = S.stores.find(s=>s.id===storeId);
+  let orders = filterByPeriod(S.orders.filter(o=>o.store_id===storeId), 'created_at', period);
+  const periodLabel = {day:'Vandaag',week:'Deze week',month:'Deze maand',year:'Dit jaar',all:'Alles'}[period||'all'];
+  const filename = `Orders_${store?store.name:'Winkel'}_${periodLabel}_${today()}`;
+  const title = `Orders — ${store?store.name:'Winkel'} — ${periodLabel}`;
+
+  const rows = orders.map(o => {
+    const items = (S.orderItems||[]).filter(i=>i.order_id===o.id);
+    const itemsStr = items.map(i=>{const p=S.products.find(x=>x.id===i.product_id);return p?`${p.name} x${i.quantity}`:''}).filter(Boolean).join(', ');
+    const orderNum = String(o.order_number||o.id).padStart(4,'0');
+    const status = o.status==='new'?'Nieuw':o.status==='sent'?'Verzonden':'Klaar';
+    return [`#${orderNum}`, o.created_at, itemsStr, o.note||'', status];
+  });
+
+  const cols = ['Order #','Datum','Producten','Notitie','Status'];
+
+  if(S.exportFormat==='excel') {
+    exportToExcel([{name:'Orders', data:[cols,...rows]}], filename);
+  } else {
+    exportToPDF(title, cols, rows, filename);
+  }
+}
+
 // Export complaints
 function exportComplaints(period, complaintId) {
   let complaints = complaintId ? (S.complaints||[]).filter(c=>c.id===complaintId) : filterByPeriod(S.complaints||[], 'created_at', period);
@@ -1239,6 +1377,61 @@ function bind(){
     stopPolling();S.screen='portal';render();
   });
   const rb=g('refresh-btn');if(rb)rb.addEventListener('click',()=>loadAll());
+  // Export page handlers
+  document.querySelectorAll('.exp-type').forEach(el=>el.addEventListener('click',()=>{S.exportPage={...(S.exportPage||{}),type:el.dataset.val,status:'all'};render()}));
+  document.querySelectorAll('.exp-format').forEach(el=>el.addEventListener('click',()=>{S.exportPage={...(S.exportPage||{}),format:el.dataset.val};render()}));
+  document.querySelectorAll('.exp-period').forEach(el=>el.addEventListener('click',()=>{S.exportPage={...(S.exportPage||{}),period:el.dataset.val};render()}));
+  document.querySelectorAll('.exp-status').forEach(el=>el.addEventListener('click',()=>{S.exportPage={...(S.exportPage||{}),status:el.dataset.val};render()}));
+  const expStore=g('exp-store');if(expStore)expStore.addEventListener('change',e=>{S.exportPage={...(S.exportPage||{}),storeId:e.target.value};render()});
+
+  const dep=g('do-export-page');
+  if(dep)dep.addEventListener('click',()=>{
+    const exp=S.exportPage||{type:'orders',format:'excel',period:'month',storeId:'all',status:'all'};
+    S.exportFormat=exp.format;
+    if(exp.type==='orders'){
+      // Filter orders
+      let items=filterByPeriod([...S.orders],'created_at',exp.period);
+      if(exp.storeId!=='all') items=items.filter(o=>o.store_id===parseInt(exp.storeId));
+      if(exp.status!=='all') items=items.filter(o=>o.status===exp.status);
+      const period={day:'Vandaag',week:'Week',month:'Maand',year:'Jaar',all:'Alles'}[exp.period];
+      const storeName=exp.storeId==='all'?'Alle':(S.stores.find(s=>s.id==exp.storeId)?.name||'');
+      const filename=`Orders_${storeName}_${period}_${today()}`;
+      const cols=['Order #','Datum','Winkel','Producten','Notitie','Status'];
+      const rows=items.map(o=>{
+        const st=S.stores.find(x=>x.id===o.store_id);
+        const its=(S.orderItems||[]).filter(i=>i.order_id===o.id);
+        const itsStr=its.map(i=>{const p=S.products.find(x=>x.id===i.product_id);return p?`${p.name} x${i.quantity}`:''}).filter(Boolean).join(', ');
+        const num=String(o.order_number||o.id).padStart(4,'0');
+        const stat=o.status==='new'?'Nieuw':o.status==='sent'?'Verzonden':'Klaar';
+        return[`#${num}`,o.created_at,st?st.name:'—',itsStr,o.note||'',stat];
+      });
+      if(exp.format==='excel'){exportToExcel([{name:'Orders',data:[cols,...rows]}],filename);}
+      else{exportToPDF(`Orders — ${storeName} — ${period}`,cols,rows,filename);}
+    }
+    else if(exp.type==='stock'){
+      const storeId=exp.storeId==='all'?null:parseInt(exp.storeId);
+      if(storeId){exportStore(storeId,exp.period);}
+      else{exportAllStores(exp.period);}
+    }
+    else if(exp.type==='complaints'){
+      let items=filterByPeriod([...(S.complaints||[])],'created_at',exp.period);
+      if(exp.storeId!=='all') items=items.filter(c=>c.store_id===parseInt(exp.storeId));
+      if(exp.status!=='all') items=items.filter(c=>c.status===exp.status);
+      const period={day:'Vandaag',week:'Week',month:'Maand',year:'Jaar',all:'Alles'}[exp.period];
+      const storeName=exp.storeId==='all'?'Alle':(S.stores.find(s=>s.id==exp.storeId)?.name||'');
+      const filename=`Klachten_${storeName}_${period}_${today()}`;
+      const cols=['Datum','Winkel','Type','Onderwerp','Omschrijving','Status','Reactie'];
+      const rows=items.map(c=>{
+        const st=S.stores.find(x=>x.id===c.store_id);
+        const type=c.type==='website'?'Website':c.type==='goods'?'Goederen':'Algemeen';
+        const stat=c.status==='open'?'Open':c.status==='in_progress'?'In behandeling':'Opgelost';
+        return[c.created_at?new Date(c.created_at).toLocaleDateString('nl-NL'):'',st?st.name:'—',type,c.subject,c.description,stat,c.admin_response||'—'];
+      });
+      if(exp.format==='excel'){exportToExcel([{name:'Klachten',data:[cols,...rows]}],filename);}
+      else{exportToPDF(`Klachten — ${storeName} — ${period}`,cols,rows,filename);}
+    }
+  });
+
   const rab=g('refresh-att-btn');if(rab)rab.addEventListener('click',async()=>{
     try{
       const att=await api('attendance?order=logged_in_at.desc&login_date=eq.'+today());
@@ -1422,10 +1615,13 @@ function bindModal(){
     const m=S.modal;
     const period=m.exportPeriod||'all';
     S.modal=null;render();
-    if(m.exportType==='order'||m.exportType==='allorders') exportOrders(m.exportId?null:period, m.exportId||null);
+    if(m.exportType==='order') exportOrders(null, m.exportId);
+    else if(m.exportType==='allorders') exportOrders(period, null);
     else if(m.exportType==='store') exportStore(m.exportId, period);
+    else if(m.exportType==='storeorders') exportOrdersPerStore(m.exportId, period);
     else if(m.exportType==='allstores') exportAllStores(period);
-    else if(m.exportType==='complaint'||m.exportType==='allcomplaints') exportComplaints(m.exportId?null:period, m.exportId||null);
+    else if(m.exportType==='complaint') exportComplaints(null, m.exportId);
+    else if(m.exportType==='allcomplaints') exportComplaints(period, null);
   });
   document.querySelectorAll('.rm-row').forEach(el=>el.addEventListener('click',()=>{const i=parseInt(el.dataset.i);S.modal.rows=S.modal.rows.filter((_,idx)=>idx!==i);render();bindModal()}));
 
