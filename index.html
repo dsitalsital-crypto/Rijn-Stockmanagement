@@ -302,7 +302,7 @@ function buildLogin(){const l=t();return`<div class="lcwrap"><div class="lcbox">
     <div style="font-size:13px;color:var(--t2);margin-top:4px">${l.sub}</div>
   </div>
   ${S.loginErr?`<div style="background:#FCEBEB;border:0.5px solid #F7C1C1;border-radius:var(--r1);padding:9px 12px;font-size:12px;color:#A32D2D;margin-bottom:14px">${S.loginErr}</div>`:''}
-  <div class="fr"><label>${l.user}</label><input type="text" id="lu" placeholder="${l.userPh}" value="${S.loginUser}"></div>
+  <div class="fr"><label>${l.user}</label><input type="text" id="lu" placeholder="admin, store1, store2..." value="${S.loginUser}"></div>
   <div class="fr"><label>${l.pass}</label><input type="password" id="lp" value="${S.loginPass}"></div>
   <button class="btn bp" style="width:100%;justify-content:center;height:38px;font-size:13px;margin-top:4px" id="login-btn">${l.signIn}</button>
 
@@ -628,7 +628,7 @@ function bAccounts(){
     <thead><tr><th>${l.user}</th><th>${l.name}</th><th>${l.pass}</th><th>${l.role}</th><th></th></tr></thead>
     <tbody>${S.accounts.map(a=>`<tr>
       <td style="font-weight:500">${a.username}</td><td>${a.display_name}</td>
-      <td style="font-family:monospace;font-size:11px;color:var(--t2)">${a.password}</td>
+      <td style="font-family:monospace;font-size:11px;color:var(--t2)">${a.auth_id?'🔒 Supabase Auth':a.password}</td>
       <td>${a.role==='admin'?`<span class="badge badm">${l.admin}</span>`:a.role==='manager'?`<span class="badge bmgr">${t().manager}</span>`:`<span class="badge bstr">${l.storeRole}</span>`}</td>
       <td style="display:flex;gap:4px">${`<button class="btn bsm eacc" data-id="${a.id}">${l.edit}</button>`}${a.id!=='admin'?`<button class="btn bd bsm dacc" data-id="${a.id}">${l.remove}</button>`:''}</td>
     </tr>`).join('')}</tbody>
@@ -873,25 +873,91 @@ function buildModal(){
   return`<div class="mover" id="mo"><div class="mbox">${inner}</div></div>`;
 }
 
-function doLogin(){
+async function doLogin(){
   const l=t(),u=gv('lu'),p=gv('lp');
-  const acc=S.accounts.find(x=>x.username===u&&x.password===p);
-  if(acc){S.session=acc;saveSession(acc);localStorage.setItem('appCompany',JSON.stringify(S.company));S.screen='app';S.loginErr='';render();
-    // Log attendance for store accounts (first login of the day only)
-    if(acc.role==='store'&&acc.store_id){
-      const todayStr=today();
-      const alreadyLogged=S.attendance&&S.attendance.some(a=>a.account_id===acc.id&&a.login_date===todayStr);
-      if(!alreadyLogged){
-        api('attendance',{method:'POST',body:JSON.stringify({account_id:acc.id,store_id:acc.store_id,company_id:S.company?.id,login_date:todayStr})})
-          .then(res=>{if(res&&res[0])S.attendance=[res[0],...(S.attendance||[])]})
-          .catch(()=>{});
+  if(!u||!p){S.loginErr=l.loginErr;render();return;}
+  
+  // First try Supabase Auth (email-based)
+  // Build email from username: username@company.handle.nl
+  const email=u.includes('@')?u:`${u}@${S.company?.handle||'rejoes'}.nl`;
+  
+  try{
+    const authData=await authLogin(email, p);
+    S.accessToken=authData.access_token;
+    
+    // Find matching account by auth_id
+    const authUser=authData.user;
+    let acc=S.accounts.find(x=>x.auth_id===authUser.id);
+    
+    // Fallback: find by username (for accounts not yet linked)
+    if(!acc) acc=S.accounts.find(x=>x.username===u);
+    
+    if(acc){
+      S.session=acc;
+      saveSession({...acc, _accessToken: authData.access_token});
+      localStorage.setItem('appCompany',JSON.stringify(S.company));
+      S.screen='app';S.loginErr='';render();
+      
+      // Log attendance for store accounts
+      if(acc.role==='store'&&acc.store_id){
+        const todayStr=today();
+        const alreadyLogged=S.attendance&&S.attendance.some(a=>a.account_id===acc.id&&a.login_date===todayStr);
+        if(!alreadyLogged){
+          api('attendance',{method:'POST',body:JSON.stringify({account_id:acc.id,store_id:acc.store_id,company_id:S.company?.id,login_date:todayStr})})
+            .then(res=>{if(res&&res[0])S.attendance=[res[0],...(S.attendance||[])]})
+            .catch(()=>{});
+        }
       }
+      if(acc.role==='admin'){
+        setTimeout(()=>{lastOrderCount=S.orders.length;lastMsgCount=(S.messages||[]).filter(m=>m.from_account!=='admin'&&!m.is_read).length;startPolling();requestNotificationPermission();},2000);
+      }
+    }else{
+      S.loginErr=l.loginErr;S.loginUser=u;S.loginPass=p;render();
     }
-    if(acc.role==='admin'){
-      setTimeout(()=>{lastOrderCount=S.orders.length;lastMsgCount=(S.messages||[]).filter(m=>m.from_account!=='admin'&&!m.is_read).length;startPolling();requestNotificationPermission();},2000);
+  }catch(e){
+    // Fallback to old password check for accounts not yet in Supabase Auth
+    const acc=S.accounts.find(x=>x.username===u&&x.password===p);
+    if(acc){
+      S.session=acc;
+      saveSession(acc);
+      localStorage.setItem('appCompany',JSON.stringify(S.company));
+      S.screen='app';S.loginErr='';render();
+      if(acc.role==='store'&&acc.store_id){
+        const todayStr=today();
+        const alreadyLogged=S.attendance&&S.attendance.some(a=>a.account_id===acc.id&&a.login_date===todayStr);
+        if(!alreadyLogged){
+          api('attendance',{method:'POST',body:JSON.stringify({account_id:acc.id,store_id:acc.store_id,company_id:S.company?.id,login_date:todayStr})})
+            .then(res=>{if(res&&res[0])S.attendance=[res[0],...(S.attendance||[])]})
+            .catch(()=>{});
+        }
+      }
+      if(acc.role==='admin'){
+        setTimeout(()=>{lastOrderCount=S.orders.length;lastMsgCount=(S.messages||[]).filter(m=>m.from_account!=='admin'&&!m.is_read).length;startPolling();requestNotificationPermission();},2000);
+      }
+    }else{
+      S.loginErr=l.loginErr;S.loginUser=u;S.loginPass=p;render();
     }
   }
-  else{S.loginErr=l.loginErr;S.loginUser=u;S.loginPass=p;render();}
+}
+
+async function authLogin(email, password){
+  const res = await fetch(SB+'/auth/v1/token?grant_type=password', {
+    method: 'POST',
+    headers: {'apikey': KEY, 'Content-Type': 'application/json'},
+    body: JSON.stringify({email, password})
+  });
+  const data = await res.json();
+  if(!res.ok) throw new Error(data.error_description||data.msg||'Login mislukt');
+  return data; // contains access_token, user
+}
+
+async function authLogout(accessToken){
+  try{
+    await fetch(SB+'/auth/v1/logout', {
+      method: 'POST',
+      headers: {'apikey': KEY, 'Authorization': 'Bearer '+accessToken}
+    });
+  }catch(e){}
 }
 
 async function lookupCompany(handle){
@@ -949,7 +1015,12 @@ function bind(){
   if(bpb)bpb.addEventListener('click',()=>{S.screen='portal';S.session=null;S.company=null;clearSession();render();});
   const lb=g('login-btn');if(lb){lb.addEventListener('click',doLogin);['lu','lp'].forEach(id=>{const e=g(id);if(e)e.addEventListener('keydown',ev=>{if(ev.key==='Enter')doLogin()})})}
 
-  const lo=g('logout-btn');if(lo)lo.addEventListener('click',()=>{S.session=null;S.modal=null;clearSession();localStorage.removeItem('appCompany');stopPolling();S.screen='portal';render()});
+  const lo=g('logout-btn');if(lo)lo.addEventListener('click',async()=>{
+    if(S.accessToken)await authLogout(S.accessToken);
+    S.session=null;S.accessToken=null;S.modal=null;
+    clearSession();localStorage.removeItem('appCompany');
+    stopPolling();S.screen='portal';render();
+  });
   const rb=g('refresh-btn');if(rb)rb.addEventListener('click',()=>loadAll());
   const rab=g('refresh-att-btn');if(rab)rab.addEventListener('click',async()=>{
     try{
