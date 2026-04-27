@@ -149,98 +149,58 @@ body.rejoes-day .lcbox { color: #2d1660; }
 body.rejoes-day .lcbox .met-l { color: #6B3FA0 !important; }
 body.rejoes-day .lcbox [style*="color:var(--t2)"] { color: #8060a0 !important; }
 body.rejoes-day .lcbox [style*="color:var(--t3)"] { color: #b090d0 !important; }
-/* App theme for rejoes - NIGHT */
+/* ===== REJOES APP - NIGHT MODE ===== */
 body.rejoes-app {
   background: #0f0520;
   font-family:'Space Grotesk',var(--sans);
 }
-/* App theme for rejoes - DAY (white + purple) */
+body.rejoes-app .wrap { background: transparent; }
+body.rejoes-app .panel { background: rgba(30,12,60,0.9); border-color: rgba(168,85,247,0.25); }
+body.rejoes-app .ph { border-color: rgba(168,85,247,0.2); }
+body.rejoes-app thead th { color: #C4A8E8; border-color: rgba(168,85,247,0.2); }
+body.rejoes-app tbody td { border-color: rgba(168,85,247,0.1); color: #e8e0f0; }
+body.rejoes-app tbody tr:hover { background: rgba(168,85,247,0.08); }
+body.rejoes-app .tabs { background: rgba(20,8,40,0.8); border-color: rgba(168,85,247,0.3); }
+body.rejoes-app .tab { color: #C4A8E8; }
+body.rejoes-app .tab.on { background: linear-gradient(135deg,rgba(255,45,120,0.3),rgba(168,85,247,0.3)); color: #e8e0f0; border-color: rgba(168,85,247,0.5); }
+body.rejoes-app .met { background: rgba(30,12,60,0.8); border: 0.5px solid rgba(168,85,247,0.2); }
+body.rejoes-app input[type=text],body.rejoes-app input[type=password],body.rejoes-app input[type=number],body.rejoes-app select,body.rejoes-app textarea { background: rgba(20,8,40,0.8); border-color: rgba(168,85,247,0.3); color: #e8e0f0; }
+body.rejoes-app .mbox { background: rgba(20,8,40,0.97); border-color: rgba(168,85,247,0.4); color: #e8e0f0; }
+body.rejoes-app .mbox label { color: #C4A8E8; }
+body.rejoes-app .btn { border-color: rgba(168,85,247,0.3); color: #e8e0f0; }
+body.rejoes-app .btn:hover { background: rgba(168,85,247,0.15); }
+body.rejoes-app .btn.bp { background: linear-gradient(135deg,#FF2D78,#A855F7); border: none; box-shadow: 0 0 15px rgba(255,45,120,0.3); color:#fff; }
+body.rejoes-app .btn.bp:hover { box-shadow: 0 0 25px rgba(255,45,120,0.5); }
+body.rejoes-app .badge { border: none; }
+body.rejoes-app .pht { color: #e8e0f0; }
+body.rejoes-app .met-v { color: #e8e0f0; }
+body.rejoes-app .met-l { color: #C4A8E8; }
+
+/* ===== REJOES APP - DAY MODE ===== */
 body.rejoes-app.rejoes-day-app {
   background: #ffffff;
 }
-body.rejoes-app.rejoes-day-app .panel {
-  background: #ffffff !important;
-  border-color: rgba(168,85,247,0.2) !important;
-}
-body.rejoes-app.rejoes-day-app .tabs {
-  background: #f8f4ff !important;
-  border-color: rgba(168,85,247,0.2) !important;
-}
-body.rejoes-app.rejoes-day-app .tab.on {
-  background: linear-gradient(135deg, rgba(255,45,120,0.1), rgba(168,85,247,0.15)) !important;
-  color: #2d1660 !important;
-}
-body.rejoes-app.rejoes-day-app .met {
-  background: #f8f4ff !important;
-}
-body.rejoes-app.rejoes-day-app .mbox {
-  background: #ffffff !important;
-}
-body.rejoes-app.rejoes-day-app tbody tr:hover {
-  background: rgba(168,85,247,0.05) !important;
-}
-body.rejoes-app .wrap {
-  background: transparent;
-}
-body.rejoes-app .panel {
-  background: rgba(30,12,60,0.9);
-  border-color: rgba(168,85,247,0.25);
-}
-body.rejoes-app .ph {
-  border-color: rgba(168,85,247,0.2);
-}
-body.rejoes-app thead th {
-  color: #C4A8E8;
-  border-color: rgba(168,85,247,0.2);
-}
-body.rejoes-app tbody td {
-  border-color: rgba(168,85,247,0.1);
-  color: #e8e0f0;
-}
-body.rejoes-app tbody tr:hover {
-  background: rgba(168,85,247,0.08);
-}
-body.rejoes-app .tabs {
-  background: rgba(20,8,40,0.8);
-  border-color: rgba(168,85,247,0.3);
-}
-body.rejoes-app .tab.on {
-  background: linear-gradient(135deg, rgba(255,45,120,0.3), rgba(168,85,247,0.3));
-  color: #e8e0f0;
-  border-color: rgba(168,85,247,0.5);
-}
-body.rejoes-app .met {
-  background: rgba(30,12,60,0.8);
-  border: 0.5px solid rgba(168,85,247,0.2);
-}
-body.rejoes-app input[type=text],
-body.rejoes-app input[type=password],
-body.rejoes-app input[type=number],
-body.rejoes-app select,
-body.rejoes-app textarea {
-  background: rgba(20,8,40,0.8);
-  border-color: rgba(168,85,247,0.3);
-  color: #e8e0f0;
-}
-body.rejoes-app .mbox {
-  background: rgba(20,8,40,0.97);
-  border-color: rgba(168,85,247,0.4);
-}
-body.rejoes-app .btn {
-  border-color: rgba(168,85,247,0.3);
-  color: #e8e0f0;
-}
-body.rejoes-app .btn:hover {
-  background: rgba(168,85,247,0.15);
-}
-body.rejoes-app .btn.bp {
-  background: linear-gradient(135deg, #FF2D78, #A855F7);
-  border: none;
-  box-shadow: 0 0 15px rgba(255,45,120,0.3);
-}
-body.rejoes-app .btn.bp:hover {
-  box-shadow: 0 0 25px rgba(255,45,120,0.5);
-}
+body.rejoes-app.rejoes-day-app .wrap { background: transparent; }
+body.rejoes-app.rejoes-day-app .panel { background: #ffffff; border-color: rgba(168,85,247,0.18); }
+body.rejoes-app.rejoes-day-app .ph { border-color: rgba(168,85,247,0.12); background: #faf7ff; }
+body.rejoes-app.rejoes-day-app thead th { color: #6B3FA0; border-color: rgba(168,85,247,0.12); }
+body.rejoes-app.rejoes-day-app tbody td { border-color: rgba(168,85,247,0.08); color: #1a0040; }
+body.rejoes-app.rejoes-day-app tbody tr:hover { background: rgba(168,85,247,0.04); }
+body.rejoes-app.rejoes-day-app .tabs { background: #f2ecff; border-color: rgba(168,85,247,0.2); }
+body.rejoes-app.rejoes-day-app .tab { color: #6B3FA0; }
+body.rejoes-app.rejoes-day-app .tab.on { background: linear-gradient(135deg,rgba(255,45,120,0.12),rgba(168,85,247,0.15)); color: #2d1660; border-color: rgba(168,85,247,0.35); }
+body.rejoes-app.rejoes-day-app .met { background: #f8f4ff; border: 0.5px solid rgba(168,85,247,0.15); }
+body.rejoes-app.rejoes-day-app .met-v { color: #2d1660; }
+body.rejoes-app.rejoes-day-app .met-l { color: #6B3FA0; }
+body.rejoes-app.rejoes-day-app .pht { color: #2d1660; }
+body.rejoes-app.rejoes-day-app input[type=text],body.rejoes-app.rejoes-day-app input[type=password],body.rejoes-app.rejoes-day-app input[type=number],body.rejoes-app.rejoes-day-app select,body.rejoes-app.rejoes-day-app textarea { background: #f8f4ff; border-color: rgba(168,85,247,0.25); color: #1a0040; }
+body.rejoes-app.rejoes-day-app .mbox { background: #ffffff; border-color: rgba(168,85,247,0.3); color: #1a0040; }
+body.rejoes-app.rejoes-day-app .mbox label { color: #6B3FA0; }
+body.rejoes-app.rejoes-day-app .btn { border-color: rgba(168,85,247,0.25); color: #2d1660; }
+body.rejoes-app.rejoes-day-app .btn:hover { background: rgba(168,85,247,0.07); }
+body.rejoes-app.rejoes-day-app .btn.bp { background: linear-gradient(135deg,#FF2D78,#A855F7); border: none; color:#fff; box-shadow: 0 4px 15px rgba(168,85,247,0.3); }
+body.rejoes-app.rejoes-day-app .btn.bd { color: #A32D2D; border-color: transparent; }
+body.rejoes-app.rejoes-day-app .btn.bd:hover { background: #FCEBEB; }
 /* Topbar gradient */
 body.rejoes-app .rejoes-topbar {
   background: linear-gradient(90deg, rgba(255,45,120,0.1), rgba(168,85,247,0.1));
