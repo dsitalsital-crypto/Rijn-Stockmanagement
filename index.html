@@ -108,46 +108,76 @@ body.rejoes-theme .btn.bp:hover {
   box-shadow: 0 0 30px rgba(255,45,120,0.6);
 }
 
-/* Rejoes DAY MODE */
+/* Rejoes DAY MODE - clean white with purple accents */
 body.rejoes-day .lcwrap {
-  background: linear-gradient(135deg, #f0e8ff 0%, #e8d5ff 40%, #fce4f4 70%, #f0e8ff 100%);
+  background: #ffffff;
   min-height:100vh;
   position:relative;
-  overflow:hidden;
 }
 body.rejoes-day .lcwrap::before {
   content:'';
   position:absolute;
   inset:0;
-  background: radial-gradient(ellipse at 20% 50%, rgba(168,85,247,0.15) 0%, transparent 50%),
-              radial-gradient(ellipse at 80% 20%, rgba(255,45,120,0.12) 0%, transparent 50%);
+  background: radial-gradient(ellipse at 10% 20%, rgba(168,85,247,0.06) 0%, transparent 50%),
+              radial-gradient(ellipse at 90% 80%, rgba(255,45,120,0.05) 0%, transparent 50%);
   pointer-events:none;
 }
 body.rejoes-day .lcbox {
-  background: rgba(255,255,255,0.9);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(168,85,247,0.3);
-  box-shadow: 0 0 30px rgba(168,85,247,0.15), 0 4px 20px rgba(0,0,0,0.08);
+  background: #ffffff;
+  border: 1.5px solid rgba(168,85,247,0.25);
+  box-shadow: 0 4px 24px rgba(168,85,247,0.1), 0 1px 4px rgba(0,0,0,0.06);
 }
 body.rejoes-day .lcbox input,
 body.rejoes-day .lcbox select {
-  background: rgba(240,232,255,0.8);
+  background: #f8f4ff;
   border-color: rgba(168,85,247,0.3);
   color: #2d1660;
 }
-body.rejoes-day .lcbox label { color: #6B3FA0; }
-body.rejoes-day .lcbox .btn { color: #2d1660; border-color: rgba(168,85,247,0.3); }
-body.rejoes-day .lcbox .btn:hover { background: rgba(168,85,247,0.1); }
+body.rejoes-day .lcbox input::placeholder { color: #9b7bc0; }
+body.rejoes-day .lcbox label { color: #6B3FA0 !important; font-weight:500; }
+body.rejoes-day .lcbox .btn { color: #4A2680; border-color: rgba(168,85,247,0.3); }
+body.rejoes-day .lcbox .btn:hover { background: rgba(168,85,247,0.08); }
 body.rejoes-day .lcbox .btn.bp {
   background: linear-gradient(135deg, #FF2D78, #A855F7);
   color: white;
   border: none;
+  box-shadow: 0 4px 15px rgba(168,85,247,0.35);
 }
+body.rejoes-day .lcbox .lbtn { color: #6B3FA0; border-color: rgba(168,85,247,0.3); }
+body.rejoes-day .lcbox .lbtn.on { background: linear-gradient(135deg,#FF2D78,#A855F7); color:#fff; border:none; }
 body.rejoes-day .lcbox { color: #2d1660; }
-/* App theme for rejoes */
+body.rejoes-day .lcbox .met-l { color: #6B3FA0 !important; }
+body.rejoes-day .lcbox [style*="color:var(--t2)"] { color: #8060a0 !important; }
+body.rejoes-day .lcbox [style*="color:var(--t3)"] { color: #b090d0 !important; }
+/* App theme for rejoes - NIGHT */
 body.rejoes-app {
   background: #0f0520;
   font-family:'Space Grotesk',var(--sans);
+}
+/* App theme for rejoes - DAY (white + purple) */
+body.rejoes-app.rejoes-day-app {
+  background: #ffffff;
+}
+body.rejoes-app.rejoes-day-app .panel {
+  background: #ffffff !important;
+  border-color: rgba(168,85,247,0.2) !important;
+}
+body.rejoes-app.rejoes-day-app .tabs {
+  background: #f8f4ff !important;
+  border-color: rgba(168,85,247,0.2) !important;
+}
+body.rejoes-app.rejoes-day-app .tab.on {
+  background: linear-gradient(135deg, rgba(255,45,120,0.1), rgba(168,85,247,0.15)) !important;
+  color: #2d1660 !important;
+}
+body.rejoes-app.rejoes-day-app .met {
+  background: #f8f4ff !important;
+}
+body.rejoes-app.rejoes-day-app .mbox {
+  background: #ffffff !important;
+}
+body.rejoes-app.rejoes-day-app tbody tr:hover {
+  background: rgba(168,85,247,0.05) !important;
 }
 body.rejoes-app .wrap {
   background: transparent;
@@ -495,8 +525,14 @@ function applyTheme(){
     if(S.session){
       document.body.classList.add('rejoes-app');
       document.body.classList.remove('rejoes-theme','rejoes-day');
+      // Day/night for app
+      if(isDayMode){
+        document.body.classList.add('rejoes-day-app');
+      }else{
+        document.body.classList.remove('rejoes-day-app');
+      }
     }else{
-      document.body.classList.remove('rejoes-app');
+      document.body.classList.remove('rejoes-app','rejoes-day-app');
       if(isDayMode){
         document.body.classList.add('rejoes-day');
         document.body.classList.remove('rejoes-theme');
@@ -507,15 +543,15 @@ function applyTheme(){
     }
     document.body.style.background='';
   }else{
-    document.body.classList.remove('rejoes-theme','rejoes-app','rejoes-day');
+    document.body.classList.remove('rejoes-theme','rejoes-app','rejoes-day','rejoes-day-app');
   }
 
   if(style){
     if(isRejoes&&S.darkMode){
       style.textContent=`:root{--bg1:#1a0a2e;--bg2:#2d1660;--bg3:#0f0520;--t1:#e8e0f0;--t2:#C4A8E8;--t3:#8060a0;--b2:rgba(168,85,247,0.3);--b3:rgba(168,85,247,0.15);}`;
     }else if(isRejoes&&!S.darkMode){
-      // Day mode for Rejoes app
-      style.textContent=`:root{--bg1:#fff;--bg2:#f5f0ff;--bg3:#ece4ff;--t1:#2d1660;--t2:#6B3FA0;--t3:#9b7bc0;--b2:rgba(168,85,247,0.25);--b3:rgba(168,85,247,0.12);}`;
+      // Day mode for Rejoes app - white bg, purple text/accents
+      style.textContent=`:root{--bg1:#ffffff;--bg2:#f8f4ff;--bg3:#f2ecff;--t1:#1a0040;--t2:#6B3FA0;--t3:#9b7bc0;--b2:rgba(168,85,247,0.2);--b3:rgba(168,85,247,0.1);}`;
     }else if(S.darkMode){
       style.textContent=`:root{--bg1:#1e1e1e;--bg2:#2a2a2a;--bg3:#333;--t1:#e8e8e8;--t2:#a0a0a0;--t3:#6a6a6a;--b2:rgba(255,255,255,0.2);--b3:rgba(255,255,255,0.1);}`;
     }else{
