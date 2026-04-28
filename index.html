@@ -1008,7 +1008,7 @@ function bWeeklyRequests(){
     <div class="panel">
       <div class="ph">
         <span class="pht">📈 Meest aangevraagd deze week</span>
-        <button class="btn bd bsm" id="reset-weekly-btn">🔄 Reset</button>
+        <button class="btn bd bsm" onclick="resetWeeklyRequests()">🔄 Reset</button>
       </div>
       <div class="tw"><table>
         <colgroup><col style="width:35px"><col style="width:160px"><col style="width:70px"><col style="width:70px"><col style="width:auto"></colgroup>
@@ -2515,6 +2515,15 @@ async function resetStoreStock(storeId){
     });
     showToast('✓ Stock gereset naar 0');
     render();
+  }catch(e){showToast('❌ '+t().errSave,'err')}
+}
+
+async function resetWeeklyRequests(){
+  if(!confirm('Weet je zeker dat je de weeklijst wil resetten? Dit kan niet ongedaan worden gemaakt.'))return;
+  try{
+    await api('weekly_product_requests',{method:'DELETE',headers:{}});
+    S.weeklyRequests=[];
+    showToast('✓ Weeklijst gereset');render();
   }catch(e){showToast('❌ '+t().errSave,'err')}
 }
 
