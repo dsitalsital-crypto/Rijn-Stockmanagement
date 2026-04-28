@@ -1970,7 +1970,10 @@ async function checkWeeklyReset(){
     if(hours===23&&mins>=59){
       // Reset all weekly requests
       try{
-        await api('weekly_product_requests',{method:'DELETE',headers:{}});
+        const ids=(S.weeklyRequests||[]).map(r=>r.id);
+        if(ids.length>0){
+          await api(`weekly_product_requests?id=in.(${ids.join(',')})`,{method:'DELETE',headers:{}});
+        }
         S.weeklyRequests=[];
         showToast('✓ Wekelijkse statistieken gereset');
       }catch(e){}
@@ -2521,7 +2524,11 @@ async function resetStoreStock(storeId){
 async function resetWeeklyRequests(){
   if(!confirm('Weet je zeker dat je de weeklijst wil resetten? Dit kan niet ongedaan worden gemaakt.'))return;
   try{
-    await api('weekly_product_requests',{method:'DELETE',headers:{}});
+    // Delete all records using id filter (Supabase requires a filter for DELETE)
+    const ids=(S.weeklyRequests||[]).map(r=>r.id);
+    if(ids.length>0){
+      await api(`weekly_product_requests?id=in.(${ids.join(',')})`,{method:'DELETE',headers:{}});
+    }
     S.weeklyRequests=[];
     showToast('✓ Weeklijst gereset');render();
   }catch(e){showToast('❌ '+t().errSave,'err')}
