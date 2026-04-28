@@ -564,6 +564,8 @@ function toggleDarkMode(){
 function render(){
   if(S.session)saveSession(S.session);
   applyTheme();
+  // Show/hide PWA banner based on login state
+  setTimeout(()=>checkAndShowPWABanner&&checkAndShowPWABanner(),500);
   let html;
   if(S.loading){
     html=`<div class="loading"><div class="spinner"></div>${t().loading}</div>`;
@@ -2655,16 +2657,38 @@ window.addEventListener('appinstalled', () => {
   showToast('✓ App geïnstalleerd!');
 });
 
+function isPWAInstalled(){
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone===true;
+}
+
 function showPWABanner(){
-  // Only show if not already installed and not dismissed
-  if(localStorage.getItem('pwaBannerDismissed'))return;
+  // Never show if already installed as PWA
+  if(isPWAInstalled())return;
+  // Only show on portal/login screen always, on app screen only once
   const banner=document.getElementById('pwa-banner');
-  if(banner)setTimeout(()=>banner.classList.add('show'),1000);
+  if(banner)setTimeout(()=>banner.classList.add('show'),1500);
 }
 
 function hidePWABanner(){
   const banner=document.getElementById('pwa-banner');
   if(banner)banner.classList.remove('show');
+}
+
+function checkAndShowPWABanner(){
+  if(isPWAInstalled())return; // Never show if installed
+  if(!window._pwaInstallPrompt)return; // No prompt available
+  
+  const isLoggedIn=!!S.session;
+  
+  if(!isLoggedIn){
+    // Portal/login screen: always show
+    showPWABanner();
+  }else{
+    // App screen: only show if not dismissed before
+    if(!localStorage.getItem('pwaBannerDismissedLoggedIn')){
+      showPWABanner();
+    }
+  }
 }
 
 document.addEventListener('DOMContentLoaded',()=>{
@@ -2684,15 +2708,17 @@ document.addEventListener('DOMContentLoaded',()=>{
   
   if(closeBtn)closeBtn.addEventListener('click',()=>{
     hidePWABanner();
-    localStorage.setItem('pwaBannerDismissed','true');
+    // Only remember dismissal when logged in
+    if(S.session){
+      localStorage.setItem('pwaBannerDismissedLoggedIn','true');
+    }
+    // On portal/login: don't remember, will show again next time
   });
 
-  // Show banner after 3 seconds if install prompt already fired
+  // Show banner after delay if prompt available
   setTimeout(()=>{
-    if(window._pwaInstallPrompt&&!localStorage.getItem('pwaBannerDismissed')){
-      showPWABanner();
-    }
-  },3000);
+    checkAndShowPWABanner();
+  },2000);
 });
 
 // Register Service Worker for PWA
