@@ -3,7 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Apparel Stock Manager</title>
+<title>Rejoes Stock Manager</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#D4537E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Rejoes Stock">
+<link rel="apple-touch-icon" href="icon-192.png">
 <!-- v2.1 -->
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -627,7 +633,7 @@ function buildAdmin(){
       }
       ${S.company?.handle==='rejoes'?`<span style="margin-left:10px">${S.session.role==='manager'?`<span class="badge bmgr">${t().manager}</span>`:`<span class="badge badm">${l.admin}</span>`}</span>`:''}
     </div>
-    <div style="display:flex;gap:8px;align-items:center">${langBar()}<button class="btn bsm" onclick="toggleDarkMode()">${S.darkMode?'☀️':'🌙'}</button><button class="btn bsm" id="refresh-btn">↻</button><button class="btn bsm" id="logout-btn">${l.out}</button></div>
+    <div style="display:flex;gap:8px;align-items:center">${langBar()}<button class="btn bsm" id="install-pwa-btn" style="display:none">📲 Installeer</button><button class="btn bsm" onclick="toggleDarkMode()">${S.darkMode?'☀️':'🌙'}</button><button class="btn bsm" id="refresh-btn">↻</button><button class="btn bsm" id="logout-btn">${l.out}</button></div>
   </div>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:1.2rem">
     <div class="met"><div class="met-l">${l.total}</div><div class="met-v">${totalAll().toLocaleString()}</div></div>
@@ -1293,7 +1299,7 @@ function buildStoreView(){
         <div style="font-size:12px;color:var(--t2)">${l.storeOnly}</div>
       </div>
     </div>
-    <div style="display:flex;gap:8px;align-items:center">${langBar()}<button class="btn bsm" onclick="toggleDarkMode()">${S.darkMode?'☀️':'🌙'}</button><button class="btn bsm" id="refresh-btn">↻</button><button class="btn bsm" id="logout-btn">${l.out}</button></div>
+    <div style="display:flex;gap:8px;align-items:center">${langBar()}<button class="btn bsm" id="install-pwa-btn" style="display:none">📲 Installeer</button><button class="btn bsm" onclick="toggleDarkMode()">${S.darkMode?'☀️':'🌙'}</button><button class="btn bsm" id="refresh-btn">↻</button><button class="btn bsm" id="logout-btn">${l.out}</button></div>
   </div>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:1.1rem">
     <div class="met"><div class="met-l">${l.total}</div><div class="met-v">${storeTotal(acc.store_id)}</div></div>
@@ -1634,7 +1640,8 @@ async function doLogin(){
         }
       }
       if(acc.role==='admin'){
-        setTimeout(()=>{lastOrderCount=S.orders.length;lastMsgCount=(S.messages||[]).filter(m=>m.from_account!=='admin'&&!m.is_read).length;startPolling();requestNotificationPermission();},2000);
+        setTimeout(()=>{lastOrderCount=S.orders.length;lastMsgCount=(S.messages||[]).filter(m=>m.from_account!=='admin'&&!m.is_read).length;startPolling();requestNotificationPermission();
+        requestPushPermission();},2000);
       }
     }else{
       S.loginErr=l.loginErr;S.loginUser=u;S.loginPass=p;render();
@@ -1657,7 +1664,8 @@ async function doLogin(){
         }
       }
       if(acc.role==='admin'){
-        setTimeout(()=>{lastOrderCount=S.orders.length;lastMsgCount=(S.messages||[]).filter(m=>m.from_account!=='admin'&&!m.is_read).length;startPolling();requestNotificationPermission();},2000);
+        setTimeout(()=>{lastOrderCount=S.orders.length;lastMsgCount=(S.messages||[]).filter(m=>m.from_account!=='admin'&&!m.is_read).length;startPolling();requestNotificationPermission();
+        requestPushPermission();},2000);
       }
     }else{
       S.loginErr=l.loginErr;S.loginUser=u;S.loginPass=p;render();
@@ -1989,6 +1997,19 @@ function bind(){
     stopPolling();S.screen='portal';render();
   });
   const rb=g('refresh-btn');if(rb)rb.addEventListener('click',()=>loadAll());
+  
+  // PWA install button
+  const installBtn=g('install-pwa-btn');
+  if(installBtn&&window._pwaInstallPrompt){
+    installBtn.style.display='inline-flex';
+    installBtn.addEventListener('click',async()=>{
+      if(window._pwaInstallPrompt){
+        window._pwaInstallPrompt.prompt();
+        const result=await window._pwaInstallPrompt.userChoice;
+        if(result.outcome==='accepted'){window._pwaInstallPrompt=null;installBtn.style.display='none';}
+      }
+    });
+  }
   const osr=g('order-srch');if(osr)osr.addEventListener('input',e=>{S.orderSearch=e.target.value;renderKeepFocus('order-srch')});
   document.querySelectorAll('.dash-period').forEach(el=>el.addEventListener('click',()=>{S.dashPeriod=el.dataset.val;render()}));
   const rwb=g('reset-weekly-btn');
@@ -2594,15 +2615,64 @@ function showNotification(msg){
   el.addEventListener('click',()=>{el.remove();S.adminSubTab='orders';render()});
   document.body.appendChild(el);
   setTimeout(()=>el.remove(),6000);
-  // Browser notification if permitted
-  if(Notification.permission==='granted'){
-    new Notification('Apparel Stock',{body:msg,icon:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><rect x="2" y="9" width="16" height="10" rx="2" fill="%23D4537E"/></svg>'});
-  }
+  // Push notification
+  sendPushNotification('Rejoes Stock', msg, '/Rijn-Stockmanagement/');
 }
 
 function requestNotificationPermission(){
   if('Notification' in window&&Notification.permission==='default'){
     Notification.requestPermission();
+  }
+}
+
+// Capture PWA install prompt
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  window._pwaInstallPrompt = e;
+  // Show install button if exists
+  const btn = document.getElementById('install-pwa-btn');
+  if(btn) btn.style.display = 'inline-flex';
+});
+
+window.addEventListener('appinstalled', () => {
+  window._pwaInstallPrompt = null;
+  showToast('✓ App geïnstalleerd!');
+});
+
+// Register Service Worker for PWA
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js')
+    .then(reg=>{
+      console.log('SW registered');
+      S.swReg=reg;
+    })
+    .catch(err=>console.log('SW error:', err));
+}
+
+// Request push notification permission
+async function requestPushPermission(){
+  if(!('Notification' in window))return;
+  if(Notification.permission==='default'){
+    const perm=await Notification.requestPermission();
+    if(perm==='granted')showToast('✓ Notificaties ingeschakeld!');
+  }
+}
+
+// Send local push notification (works when app is open)
+function sendPushNotification(title, body, url){
+  if(Notification.permission==='granted'){
+    if(S.swReg){
+      S.swReg.showNotification(title,{
+        body,
+        icon:'icon-192.png',
+        badge:'icon-192.png',
+        vibrate:[200,100,200],
+        data:{url},
+        tag:'rejoes-stock'
+      });
+    }else{
+      new Notification(title,{body,icon:'icon-192.png'});
+    }
   }
 }
 
@@ -2628,6 +2698,7 @@ setTimeout(()=>{
     lastMsgCount=(S.messages||[]).filter(m=>m.from_account!=='admin'&&!m.is_read).length;
     startPolling();
     requestNotificationPermission();
+        requestPushPermission();
   }
 },3000);
 </script>
