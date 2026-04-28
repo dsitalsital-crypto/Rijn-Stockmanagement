@@ -80,13 +80,14 @@ tbody tr:hover{background:var(--bg2)}
 <style id="theme-style"></style>
 <style>
 #pwa-banner{
-  position:fixed;top:0;left:0;right:0;z-index:99999;
+  position:fixed;top:env(safe-area-inset-top, 0);left:0;right:0;z-index:2147483647;
   background:linear-gradient(135deg,#D4537E,#A855F7);
-  color:#fff;padding:14px 20px;
+  color:#fff;padding:12px 16px;
   display:flex;align-items:center;justify-content:space-between;gap:12px;
-  box-shadow:0 4px 20px rgba(0,0,0,0.2);
-  transform:translateY(-100%);transition:transform .3s ease;
+  box-shadow:0 4px 20px rgba(0,0,0,0.25);
+  transform:translateY(-110%);transition:transform .3s ease;
   font-family:var(--sans);
+  touch-action:none;
 }
 #pwa-banner.show{transform:translateY(0)}
 #pwa-banner .pwa-txt{font-size:13px;font-weight:500;flex:1}
@@ -2662,11 +2663,23 @@ function isPWAInstalled(){
 }
 
 function showPWABanner(){
-  // Never show if already installed as PWA
   if(isPWAInstalled())return;
-  // Only show on portal/login screen always, on app screen only once
   const banner=document.getElementById('pwa-banner');
-  if(banner)setTimeout(()=>banner.classList.add('show'),1500);
+  if(banner){
+    setTimeout(()=>{
+      banner.classList.add('show');
+      // Use visualViewport to keep banner at top above keyboard
+      if(window.visualViewport){
+        function updateBannerPos(){
+          const vv=window.visualViewport;
+          banner.style.top=vv.offsetTop+'px';
+        }
+        window.visualViewport.addEventListener('resize',updateBannerPos);
+        window.visualViewport.addEventListener('scroll',updateBannerPos);
+        updateBannerPos();
+      }
+    },1500);
+  }
 }
 
 function hidePWABanner(){
