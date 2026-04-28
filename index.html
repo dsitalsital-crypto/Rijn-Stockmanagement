@@ -79,17 +79,59 @@ tbody tr:hover{background:var(--bg2)}
 </style>
 <style id="theme-style"></style>
 <style>
+/* Rijn Stockmanagement Portal Theme */
+.rijn-portal .lcwrap {
+  background: linear-gradient(160deg, #003580 0%, #0057B8 50%, #1A78C2 100%);
+  min-height:100vh;
+}
+.rijn-portal .lcwrap::before {
+  content:'';position:absolute;inset:0;
+  background: repeating-linear-gradient(45deg,transparent,transparent 40px,rgba(245,200,66,0.06) 40px,rgba(245,200,66,0.06) 80px);
+  pointer-events:none;
+}
+.rijn-portal .lcbox {
+  background: #ffffff;
+  border: none;
+  box-shadow: 0 8px 40px rgba(0,53,128,0.25);
+}
+.rijn-btn {
+  background: linear-gradient(135deg,#0057B8,#003580) !important;
+  color: #fff !important;
+  border: none !important;
+  box-shadow: 0 4px 15px rgba(0,53,128,0.3) !important;
+}
+.rijn-btn:hover {
+  background: linear-gradient(135deg,#0066D6,#004499) !important;
+}
+.rijn-btn-outline {
+  background: transparent !important;
+  color: #0057B8 !important;
+  border: 1.5px solid #0057B8 !important;
+}
+.rijn-btn-outline:hover {
+  background: rgba(0,87,184,0.06) !important;
+}
+/* Yellow accent stripes on portal */
+.rijn-portal .lcbox::before {
+  content:'';
+  display:block;
+  height:5px;
+  background: linear-gradient(90deg,#F5C842,#FFD700,#F5C842);
+  margin:-0px -0px 16px -0px;
+  border-radius:12px 12px 0 0;
+}
+</style>
+<style>
 #pwa-banner{
-  position:fixed;top:env(safe-area-inset-top, 0);left:0;right:0;z-index:2147483647;
+  position:sticky;top:0;left:0;right:0;z-index:2147483647;
   background:linear-gradient(135deg,#D4537E,#A855F7);
   color:#fff;padding:12px 16px;
-  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  display:none;
+  align-items:center;justify-content:space-between;gap:12px;
   box-shadow:0 4px 20px rgba(0,0,0,0.25);
-  transform:translateY(-110%);transition:transform .3s ease;
   font-family:var(--sans);
-  touch-action:none;
 }
-#pwa-banner.show{transform:translateY(0)}
+#pwa-banner.show{display:flex}
 #pwa-banner .pwa-txt{font-size:13px;font-weight:500;flex:1}
 #pwa-banner .pwa-sub{font-size:11px;opacity:.85;margin-top:2px}
 #pwa-banner .pwa-install{background:rgba(255,255,255,0.25);border:1px solid rgba(255,255,255,0.4);color:#fff;border-radius:20px;padding:7px 16px;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;font-family:var(--sans)}
@@ -250,10 +292,6 @@ body.rejoes-app .rejoes-title {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
-<div class="wrap">
-  <div id="root"></div>
-</div>
-
 <!-- PWA Install Banner -->
 <div id="pwa-banner">
   <div>
@@ -263,6 +301,11 @@ body.rejoes-app .rejoes-title {
   <button class="pwa-install" id="pwa-install-btn">Installeren</button>
   <button class="pwa-close" id="pwa-close-btn">✕</button>
 </div>
+<div class="wrap">
+  <div id="root"></div>
+</div>
+
+
 <!-- Rejoes ambient background -->
 <div id="rejoes-bg" style="display:none;position:fixed;inset:0;z-index:-1;pointer-events:none">
   <div style="position:absolute;top:-20%;left:-10%;width:500px;height:500px;background:radial-gradient(circle,rgba(168,85,247,0.15) 0%,transparent 70%);border-radius:50%"></div>
@@ -587,29 +630,25 @@ function renderKeepFocus(focusId){
 }
 
 function buildPortal(){
-  return`<div class="lcwrap"><div class="lcbox" style="width:380px">
-  <div style="text-align:center;margin-bottom:2rem">
-    <div style="width:60px;height:60px;background:#FBEAF0;border-radius:var(--r2);display:flex;align-items:center;justify-content:center;margin:0 auto 14px">
-      <svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="#D4537E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><polyline points="9 22 9 12 15 12 15 22" stroke="#D4537E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </div>
-    <div style="font-size:24px;font-weight:600;color:var(--t1)">Stock Manager</div>
-    <div style="font-size:13px;color:var(--t2);margin-top:6px">${t().companyPh}</div>
+  return`<div class="lcwrap rijn-portal"><div class="lcbox" style="width:380px">
+  <div style="text-align:center;margin-bottom:1.5rem">
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAIAAADdvvtQAAADEElEQVR4nO3Ssa0VWBTFUCfEtEBP9DNVUhAdwD8Ez3drLK0CHJjv334k/wy9INPQCzINvSDT0AsyDb0g09ALMg29INPQCzINvSDT0AsyDb0g09ALMg29INPQCzINvSDT0AsyDb0g09ALMg29INPQCzINvSDT0AsyDb0g09ALMg29INPQCzINvSDT0AsyDb0g09ALMg29INPQCzINvSDT0AsyDb0g09ALMg29INPQCzINvSDT0AsyDb0g09ALMg29INPQCzINvSDT0AsyDb0g09ALMg29INPQCzINvSDT0AsyDb0g09ALMg29INPQCzINveDq18//vkLv/J9AL7j64kA99BnoBVcN9BT0gquvD9RDH4BecNVAT0EvuGqgp6AXXDXQU9ALrhroKegFVw30FPSCqwZ6CnrBVfc8Bb3gqoGegl5w1T1PQS+4ap2noBdc/Xmdxvow9IKrBnoKesFVAz0FveCqgZ6CXnDVQE9BL7hqoKegF1w10FPQC64a6CnoBVd/XaSBPgm9INPQCzINvSDT0AsyDb0g09ALMg29INPQCzINvSDT0AsyDb0g09ALMg29INPQCzINvSDT0AsyDb0g09ALMg29INPQCzINvSDT0AsyDb0g09ALMg29INPQCzINvSDT0AsyDb0g09ALMg29INPQCzINvSDT0AsyDb0g09ALMg29INPQCzINvSDT0AsyDb0g09ALMg29INPQCzINvSDT0AsyDb0g09ALMg29INPQCzINvSDT0AsyDb0g09ALMg29INPQCzINvSDT0AsyDb0g09ALMg29INPQCzINvSDT0AsyDb0g09ALMg29INPQCzINvSDT0AsyDb0g09ALMg29INPQCzINvSDT0AsyDb0g09ALMg29INPQCzINvSDT0AsyDb0g09ALMg29INPQCzINvSDT0AsyDb0g09ALMg29INPQCzINvSDT0AsyDb0g09ALMg29INPQCzINvSDT0AsyDb0g09ALMg29INPQCzINvSDT0AsyDb0g09ALMg29INPQCzINvSDT0Asy7TcoG0dJKl905gAAAABJRU5ErkJggg==" style="width:72px;height:72px;border-radius:16px;margin:0 auto 12px;display:block;box-shadow:0 4px 16px rgba(0,80,160,0.2)">
+    <div style="font-size:26px;font-weight:700;color:#003580;letter-spacing:-0.5px">Rijn Stockmanagement</div>
+    <div style="font-size:13px;color:#4A90C4;margin-top:4px">Voer je bedrijfsnaam in om in te loggen</div>
   </div>
-  ${S.handleErr?`<div style="background:#FCEBEB;border:0.5px solid #F7C1C1;border-radius:var(--r1);padding:9px 12px;font-size:12px;color:#A32D2D;margin-bottom:14px">${S.handleErr}</div>`:''}
+  ${S.handleErr?`<div style="background:#FEF3CD;border:0.5px solid #F5C842;border-radius:var(--r1);padding:9px 12px;font-size:12px;color:#7A5C00;margin-bottom:14px">${S.handleErr}</div>`:''}
   <div class="fr">
-    <label style="font-size:12px;color:var(--t2);margin-bottom:5px;display:block">${t().companyHandle}</label>
-    <div style="display:flex;gap:8px">
-      <input type="text" id="handle-inp" placeholder="${t().companyPh}" value="${S.handleInput}" style="flex:1;text-transform:lowercase">
-      <button class="btn bp" id="handle-btn" style="height:34px;padding:0 16px">${t().goBtn}</button>
-    </div>
+    <label style="font-size:12px;color:#4A90C4;margin-bottom:5px;display:block;font-weight:500">Bedrijfsnaam</label>
+    <input type="text" id="handle-inp" placeholder="bv. rejoes" value="${S.handleInput}" style="text-transform:lowercase;border-color:#4A90C4;border-radius:8px">
   </div>
-  <div style="margin-top:1.5rem;border-top:0.5px solid var(--b3);padding-top:1rem">
-    <div style="font-size:11px;color:var(--t2);margin-bottom:8px;font-weight:500">${t().availableCompanies}:</div>
-    <div id="company-list" style="display:flex;flex-wrap:wrap;gap:6px">
-      <div class="loading" style="padding:.5rem"><div class="spinner" style="width:14px;height:14px"></div></div>
-    </div>
+  <button class="btn rijn-btn" id="handle-btn" style="width:100%;justify-content:center;height:40px;font-size:14px;font-weight:600;margin-top:8px;border-radius:8px">Ga verder →</button>
+  <div id="company-list" style="display:none"></div>
+  <div style="margin-top:1.5rem;border-top:0.5px solid #D0E8F5;padding-top:1rem;display:flex;justify-content:center">
+    ${langBar()}
   </div>
-  <div style="margin-top:1rem;font-size:11px;color:var(--t3);text-align:center">${langBar()}</div>
+  <div id="pwa-portal-btn" style="margin-top:12px;text-align:center;display:none">
+    <button class="btn rijn-btn-outline" id="pwa-portal-install" style="width:100%;justify-content:center;height:38px;font-size:13px;border-radius:8px">📲 Installeer de app</button>
+  </div>
 </div></div>`;
 }
 
@@ -639,7 +678,8 @@ function buildLogin(){const l=t();return`<div class="lcwrap"><div class="lcbox">
   <div class="fr"><label>${l.pass}</label><input type="password" id="lp" value="${S.loginPass}"></div>
   <button class="btn bp" style="width:100%;justify-content:center;height:38px;font-size:13px;margin-top:4px" id="login-btn">${l.signIn}</button>
 
-</div></div>`}
+</div></div>`;
+}
 
 function buildApp(){return(S.session.role==='admin'||S.session.role==='manager')?buildAdmin():buildStoreView()}
 
@@ -2650,6 +2690,9 @@ window.addEventListener('beforeinstallprompt', e => {
   e.preventDefault();
   window._pwaInstallPrompt = e;
   showPWABanner();
+  // Show portal install button if on portal screen
+  const portalBtn=document.getElementById('pwa-portal-btn');
+  if(portalBtn&&!isPWAInstalled())portalBtn.style.display='block';
 });
 
 window.addEventListener('appinstalled', () => {
@@ -2665,21 +2708,7 @@ function isPWAInstalled(){
 function showPWABanner(){
   if(isPWAInstalled())return;
   const banner=document.getElementById('pwa-banner');
-  if(banner){
-    setTimeout(()=>{
-      banner.classList.add('show');
-      // Use visualViewport to keep banner at top above keyboard
-      if(window.visualViewport){
-        function updateBannerPos(){
-          const vv=window.visualViewport;
-          banner.style.top=vv.offsetTop+'px';
-        }
-        window.visualViewport.addEventListener('resize',updateBannerPos);
-        window.visualViewport.addEventListener('scroll',updateBannerPos);
-        updateBannerPos();
-      }
-    },1500);
-  }
+  if(banner)setTimeout(()=>banner.classList.add('show'),1500);
 }
 
 function hidePWABanner(){
@@ -2731,6 +2760,21 @@ document.addEventListener('DOMContentLoaded',()=>{
   // Show banner after delay if prompt available
   setTimeout(()=>{
     checkAndShowPWABanner();
+    // Also show install button in portal
+    const portalBtn=document.getElementById('pwa-portal-btn');
+    const portalInstall=document.getElementById('pwa-portal-install');
+    if(portalBtn&&window._pwaInstallPrompt&&!isPWAInstalled()){
+      portalBtn.style.display='block';
+    }
+    if(portalInstall){
+      portalInstall.addEventListener('click',async()=>{
+        if(window._pwaInstallPrompt){
+          window._pwaInstallPrompt.prompt();
+          const r=await window._pwaInstallPrompt.userChoice;
+          if(r.outcome==='accepted'){window._pwaInstallPrompt=null;if(portalBtn)portalBtn.style.display='none';}
+        }
+      });
+    }
   },2000);
 });
 
