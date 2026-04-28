@@ -78,6 +78,24 @@ tbody tr:hover{background:var(--bg2)}
 .chat-msg{padding:7px 11px;border-radius:12px;font-size:12px;max-width:78%;word-break:break-word}
 </style>
 <style id="theme-style"></style>
+<style>
+#pwa-banner{
+  position:fixed;bottom:0;left:0;right:0;z-index:99999;
+  background:linear-gradient(135deg,#D4537E,#A855F7);
+  color:#fff;padding:14px 20px;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  box-shadow:0 -4px 20px rgba(0,0,0,0.2);
+  transform:translateY(100%);transition:transform .3s ease;
+  font-family:var(--sans);
+}
+#pwa-banner.show{transform:translateY(0)}
+#pwa-banner .pwa-txt{font-size:13px;font-weight:500;flex:1}
+#pwa-banner .pwa-sub{font-size:11px;opacity:.85;margin-top:2px}
+#pwa-banner .pwa-install{background:rgba(255,255,255,0.25);border:1px solid rgba(255,255,255,0.4);color:#fff;border-radius:20px;padding:7px 16px;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;font-family:var(--sans)}
+#pwa-banner .pwa-install:hover{background:rgba(255,255,255,0.35)}
+#pwa-banner .pwa-close{background:none;border:none;color:#fff;font-size:20px;cursor:pointer;padding:0 4px;opacity:.8;line-height:1}
+#pwa-banner .pwa-close:hover{opacity:1}
+</style>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
 <style id="rejoes-theme">
 /* Rejoes Y2K Theme - NIGHT MODE (default) */
@@ -233,6 +251,16 @@ body.rejoes-app .rejoes-title {
 <body>
 <div class="wrap">
   <div id="root"></div>
+</div>
+
+<!-- PWA Install Banner -->
+<div id="pwa-banner">
+  <div>
+    <div class="pwa-txt">📲 Installeer de app</div>
+    <div class="pwa-sub">Ontvang notificaties & gebruik offline</div>
+  </div>
+  <button class="pwa-install" id="pwa-install-btn">Installeren</button>
+  <button class="pwa-close" id="pwa-close-btn">✕</button>
 </div>
 <!-- Rejoes ambient background -->
 <div id="rejoes-bg" style="display:none;position:fixed;inset:0;z-index:-1;pointer-events:none">
@@ -633,7 +661,7 @@ function buildAdmin(){
       }
       ${S.company?.handle==='rejoes'?`<span style="margin-left:10px">${S.session.role==='manager'?`<span class="badge bmgr">${t().manager}</span>`:`<span class="badge badm">${l.admin}</span>`}</span>`:''}
     </div>
-    <div style="display:flex;gap:8px;align-items:center">${langBar()}<button class="btn bsm" id="install-pwa-btn" style="display:none">📲 Installeer</button><button class="btn bsm" onclick="toggleDarkMode()">${S.darkMode?'☀️':'🌙'}</button><button class="btn bsm" id="refresh-btn">↻</button><button class="btn bsm" id="logout-btn">${l.out}</button></div>
+    <div style="display:flex;gap:8px;align-items:center">${langBar()}<button class="btn bsm" onclick="toggleDarkMode()">${S.darkMode?'☀️':'🌙'}</button><button class="btn bsm" id="refresh-btn">↻</button><button class="btn bsm" id="logout-btn">${l.out}</button></div>
   </div>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:1.2rem">
     <div class="met"><div class="met-l">${l.total}</div><div class="met-v">${totalAll().toLocaleString()}</div></div>
@@ -1299,7 +1327,7 @@ function buildStoreView(){
         <div style="font-size:12px;color:var(--t2)">${l.storeOnly}</div>
       </div>
     </div>
-    <div style="display:flex;gap:8px;align-items:center">${langBar()}<button class="btn bsm" id="install-pwa-btn" style="display:none">📲 Installeer</button><button class="btn bsm" onclick="toggleDarkMode()">${S.darkMode?'☀️':'🌙'}</button><button class="btn bsm" id="refresh-btn">↻</button><button class="btn bsm" id="logout-btn">${l.out}</button></div>
+    <div style="display:flex;gap:8px;align-items:center">${langBar()}<button class="btn bsm" onclick="toggleDarkMode()">${S.darkMode?'☀️':'🌙'}</button><button class="btn bsm" id="refresh-btn">↻</button><button class="btn bsm" id="logout-btn">${l.out}</button></div>
   </div>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:1.1rem">
     <div class="met"><div class="met-l">${l.total}</div><div class="met-v">${storeTotal(acc.store_id)}</div></div>
@@ -1998,18 +2026,7 @@ function bind(){
   });
   const rb=g('refresh-btn');if(rb)rb.addEventListener('click',()=>loadAll());
   
-  // PWA install button
-  const installBtn=g('install-pwa-btn');
-  if(installBtn&&window._pwaInstallPrompt){
-    installBtn.style.display='inline-flex';
-    installBtn.addEventListener('click',async()=>{
-      if(window._pwaInstallPrompt){
-        window._pwaInstallPrompt.prompt();
-        const result=await window._pwaInstallPrompt.userChoice;
-        if(result.outcome==='accepted'){window._pwaInstallPrompt=null;installBtn.style.display='none';}
-      }
-    });
-  }
+
   const osr=g('order-srch');if(osr)osr.addEventListener('input',e=>{S.orderSearch=e.target.value;renderKeepFocus('order-srch')});
   document.querySelectorAll('.dash-period').forEach(el=>el.addEventListener('click',()=>{S.dashPeriod=el.dataset.val;render()}));
   const rwb=g('reset-weekly-btn');
@@ -2629,14 +2646,53 @@ function requestNotificationPermission(){
 window.addEventListener('beforeinstallprompt', e => {
   e.preventDefault();
   window._pwaInstallPrompt = e;
-  // Show install button if exists
-  const btn = document.getElementById('install-pwa-btn');
-  if(btn) btn.style.display = 'inline-flex';
+  showPWABanner();
 });
 
 window.addEventListener('appinstalled', () => {
   window._pwaInstallPrompt = null;
+  hidePWABanner();
   showToast('✓ App geïnstalleerd!');
+});
+
+function showPWABanner(){
+  // Only show if not already installed and not dismissed
+  if(localStorage.getItem('pwaBannerDismissed'))return;
+  const banner=document.getElementById('pwa-banner');
+  if(banner)setTimeout(()=>banner.classList.add('show'),1000);
+}
+
+function hidePWABanner(){
+  const banner=document.getElementById('pwa-banner');
+  if(banner)banner.classList.remove('show');
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  const installBtn=document.getElementById('pwa-install-btn');
+  const closeBtn=document.getElementById('pwa-close-btn');
+  
+  if(installBtn)installBtn.addEventListener('click',async()=>{
+    if(window._pwaInstallPrompt){
+      window._pwaInstallPrompt.prompt();
+      const result=await window._pwaInstallPrompt.userChoice;
+      if(result.outcome==='accepted'){
+        window._pwaInstallPrompt=null;
+        hidePWABanner();
+      }
+    }
+  });
+  
+  if(closeBtn)closeBtn.addEventListener('click',()=>{
+    hidePWABanner();
+    localStorage.setItem('pwaBannerDismissed','true');
+  });
+
+  // Show banner after 3 seconds if install prompt already fired
+  setTimeout(()=>{
+    if(window._pwaInstallPrompt&&!localStorage.getItem('pwaBannerDismissed')){
+      showPWABanner();
+    }
+  },3000);
 });
 
 // Register Service Worker for PWA
