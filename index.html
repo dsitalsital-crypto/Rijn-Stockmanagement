@@ -2524,12 +2524,13 @@ async function resetStoreStock(storeId){
 async function resetWeeklyRequests(){
   if(!confirm('Weet je zeker dat je de weeklijst wil resetten? Dit kan niet ongedaan worden gemaakt.'))return;
   try{
-    // Delete all records using id filter (Supabase requires a filter for DELETE)
-    const ids=(S.weeklyRequests||[]).map(r=>r.id);
-    if(ids.length>0){
-      await api(`weekly_product_requests?id=in.(${ids.join(',')})`,{method:'DELETE',headers:{}});
+    // Move all current week records to a past date so they don't show
+    const weekStart=getWeekStart();
+    const ids=(S.weeklyRequests||[]).filter(r=>r.week_start===weekStart).map(r=>r.id);
+    for(const id of ids){
+      await api(`weekly_product_requests?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({week_start:'2000-01-01'})});
     }
-    S.weeklyRequests=[];
+    S.weeklyRequests=(S.weeklyRequests||[]).map(r=>ids.includes(r.id)?{...r,week_start:'2000-01-01'}:r);
     showToast('✓ Weeklijst gereset');render();
   }catch(e){showToast('❌ '+t().errSave,'err')}
 }
