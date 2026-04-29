@@ -1160,6 +1160,208 @@ function bProducts(){
   </table></div>
 </div>`}
 
+function bWeeklyRequests(){
+  const weekStart=getWeekStart();
+  const thisWeek=[...(S.weeklyRequests||[])].filter(r=>r.week_start===weekStart).sort((a,b)=>b.quantity-a.quantity);
+  const maxQty=Math.max(1,...thisWeek.map(r=>r.quantity));
+  const totalQty=thisWeek.reduce((a,r)=>a+r.quantity,0);
+  const nextReset=getNextSunday();
+  const now=new Date();
+  const diff=nextReset-now;
+  const days=Math.floor(diff/(1000*60*60*24));
+  const hours=Math.floor((diff%(1000*60*60*24))/(1000*60*60));
+  const mins=Math.floor((diff%(1000*60*60))/(1000*60));
+  const resetStr=days>0?`${days}d ${hours}u`:`${hours}u ${mins}m`;
+  const colors=['#D4537E','#E07B39','#E0B939','#639922','#4A90D9','#9B59B6','#1ABC9C','#E74C3C','#F39C12','#2ECC71'];
+  const size=180,cx=size/2,cy=size/2,r=75,innerR=40;
+  let slices='',angle=-90;
+  thisWeek.slice(0,10).forEach((item,i)=>{
+    const pct=item.quantity/totalQty;
+    const startAngle=angle,endAngle=angle+pct*360;
+    const s=angle*(Math.PI/180),e=endAngle*(Math.PI/180);
+    const x1=cx+r*Math.cos(s),y1=cy+r*Math.sin(s),x2=cx+r*Math.cos(e),y2=cy+r*Math.sin(e);
+    const ix1=cx+innerR*Math.cos(s),iy1=cy+innerR*Math.sin(s),ix2=cx+innerR*Math.cos(e),iy2=cy+innerR*Math.sin(e);
+    const large=pct>0.5?1:0,col=colors[i%colors.length];
+    slices+=`<path d="M${ix1},${iy1} L${x1},${y1} A${r},${r} 0 ${large},1 ${x2},${y2} L${ix2},${iy2} A${innerR},${innerR} 0 ${large},0 ${ix1},${iy1}" fill="${col}" stroke="var(--bg1)" stroke-width="1.5" opacity="0.9"/>`;
+    angle=endAngle;
+  });
+  return`<div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:1rem">
+    <div class="met"><div class="met-l">Producten</div><div class="met-v">${thisWeek.length}</div></div>
+    <div class="met"><div class="met-l">Totaal stuks</div><div class="met-v">${totalQty}</div></div>
+    <div class="met"><div class="met-l">Reset over</div><div class="met-v" style="font-size:15px">${resetStr}</div></div>
+    <div class="met"><div class="met-l">Week van</div><div class="met-v" style="font-size:14px">${weekStart}</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:${thisWeek.length?'220px 1fr':'1fr'};gap:12px;align-items:start">
+    ${thisWeek.length?`<div class="panel" style="padding:1rem;display:flex;flex-direction:column;align-items:center">
+      <div style="font-size:12px;font-weight:500;color:var(--t2);margin-bottom:10px">Verdeling</div>
+      <svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">${slices}<text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle" font-size="11" fill="var(--t2)">${thisWeek.length} prod.</text></svg>
+      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:10px;justify-content:center">
+        ${thisWeek.slice(0,10).map((r,i)=>`<div style="display:flex;align-items:center;gap:4px;font-size:10px"><div style="width:8px;height:8px;border-radius:50%;background:${colors[i%colors.length]}"></div><span style="color:var(--t2)">${r.product_name.slice(0,12)}${r.product_name.length>12?'…':''}</span></div>`).join('')}
+      </div>
+    </div>`:''}
+    <div class="panel">
+      <div class="ph"><span class="pht">📈 Meest aangevraagd deze week</span><button class="btn bd bsm" onclick="resetWeeklyRequests()">🔄 Reset</button></div>
+      <div class="tw"><table>
+        <colgroup><col style="width:35px"><col style="width:160px"><col style="width:70px"><col style="width:70px"><col style="width:auto"></colgroup>
+        <thead><tr><th>#</th><th>Product</th><th>SKU</th><th>Stuks</th><th>Grafiek</th></tr></thead>
+        <tbody>${thisWeek.length?thisWeek.map((r,i)=>{
+          const pct=Math.round(r.quantity/maxQty*100),col=colors[i%colors.length];
+          return`<tr><td style="font-weight:700;color:${col}">${i+1}</td><td style="font-weight:500">${r.product_name}</td><td style="color:var(--t2);font-size:11px">${r.product_sku}</td><td><span style="font-size:16px;font-weight:700;color:${col}">${r.quantity}</span></td><td><div class="barbg"><div class="barfill" style="width:${pct}%;background:${col}"></div></div></td></tr>`;
+        }).join(''):`<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--t3)">Nog geen aanvragen deze week</td></tr>`}
+        </tbody>
+      </table></div>
+    </div>
+  </div>
+</div>`}
+
+function bExportPage(){
+  const exp=S.exportPage||{type:'orders',format:'excel',period:'month',storeId:'all',status:'all'};
+  return`<div>
+  <div class="panel">
+    <div class="ph"><span class="pht">📤 Export centrum</span></div>
+    <div style="padding:1rem">
+      <div style="margin-bottom:1.2rem">
+        <div style="font-size:12px;font-weight:500;color:var(--t2);margin-bottom:8px">${t().whatExport}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn ${exp.type==='orders'?'bp':''} exp-type" data-val="orders">📦 Orders</button>
+          <button class="btn ${exp.type==='stock'?'bp':''} exp-type" data-val="stock">📊 Voorraad</button>
+          <button class="btn ${exp.type==='complaints'?'bp':''} exp-type" data-val="complaints">📋 Klachten</button>
+        </div>
+      </div>
+      <div style="margin-bottom:1.2rem">
+        <div style="font-size:12px;font-weight:500;color:var(--t2);margin-bottom:8px">FORMAAT</div>
+        <div style="display:flex;gap:6px">
+          <button class="btn ${exp.format==='excel'?'bp':''} exp-format" data-val="excel">📊 Excel (.xlsx)</button>
+          <button class="btn ${exp.format==='pdf'?'bp':''} exp-format" data-val="pdf">📄 PDF</button>
+        </div>
+      </div>
+      <div style="margin-bottom:1.2rem">
+        <div style="font-size:12px;font-weight:500;color:var(--t2);margin-bottom:8px">WINKEL</div>
+        <select id="exp-store" style="height:34px;font-size:13px;max-width:300px">
+          <option value="all" ${exp.storeId==='all'?'selected':''}>Alle winkels</option>
+          ${S.stores.map(s=>`<option value="${s.id}" ${exp.storeId==s.id?'selected':''}>${s.name}</option>`).join('')}
+        </select>
+      </div>
+      ${exp.type!=='stock'?`<div style="margin-bottom:1.2rem">
+        <div style="font-size:12px;font-weight:500;color:var(--t2);margin-bottom:8px">PERIODE</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn ${exp.period==='day'?'bp':''} exp-period" data-val="day">${t().today}</button>
+          <button class="btn ${exp.period==='week'?'bp':''} exp-period" data-val="week">${t().thisWeek}</button>
+          <button class="btn ${exp.period==='month'?'bp':''} exp-period" data-val="month">${t().thisMonth}</button>
+          <button class="btn ${exp.period==='year'?'bp':''} exp-period" data-val="year">${t().thisYear}</button>
+          <button class="btn ${exp.period==='all'?'bp':''} exp-period" data-val="all">${t().allTime}</button>
+        </div>
+      </div>`:''}
+      ${exp.type==='orders'?`<div style="margin-bottom:1.2rem">
+        <div style="font-size:12px;font-weight:500;color:var(--t2);margin-bottom:8px">STATUS</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn ${exp.status==='all'?'bp':''} exp-status" data-val="all">Alle</button>
+          <button class="btn ${exp.status==='new'?'bp':''} exp-status" data-val="new">Nieuw</button>
+          <button class="btn ${exp.status==='approved'?'bp':''} exp-status" data-val="approved">Goedgekeurd</button>
+          <button class="btn ${exp.status==='sent'?'bp':''} exp-status" data-val="sent">Onderweg</button>
+          <button class="btn ${exp.status==='done'?'bp':''} exp-status" data-val="done">Geleverd</button>
+        </div>
+      </div>`:''}
+      ${exp.type==='complaints'?`<div style="margin-bottom:1.2rem">
+        <div style="font-size:12px;font-weight:500;color:var(--t2);margin-bottom:8px">STATUS</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn ${exp.status==='all'?'bp':''} exp-status" data-val="all">Alle</button>
+          <button class="btn ${exp.status==='open'?'bp':''} exp-status" data-val="open">Open</button>
+          <button class="btn ${exp.status==='in_progress'?'bp':''} exp-status" data-val="in_progress">In behandeling</button>
+          <button class="btn ${exp.status==='resolved'?'bp':''} exp-status" data-val="resolved">Opgelost</button>
+        </div>
+      </div>`:''}
+      <div style="background:var(--bg2);border-radius:var(--r1);padding:12px 14px;margin-bottom:1.2rem;font-size:13px">
+        ${exp.type==='orders'?`📦 <strong>${filterByPeriod(S.orders.filter(o=>exp.storeId==='all'||o.store_id==exp.storeId).filter(o=>exp.status==='all'||o.status===exp.status),'created_at',exp.period).length}</strong> orders gevonden`:''}
+        ${exp.type==='stock'?`📊 Voorraad van <strong>${exp.storeId==='all'?S.stores.length+' winkels':'1 winkel'}</strong>`:''}
+        ${exp.type==='complaints'?`📋 <strong>${filterByPeriod((S.complaints||[]).filter(c=>exp.storeId==='all'||c.store_id==exp.storeId).filter(c=>exp.status==='all'||c.status===exp.status),'created_at',exp.period).length}</strong> klachten gevonden`:''}
+      </div>
+      <button class="btn bp" id="do-export-page" style="width:100%;justify-content:center;height:40px;font-size:14px">⬇️ Downloaden als ${exp.format==='excel'?'Excel':'PDF'}</button>
+    </div>
+  </div>
+</div>`}
+
+function bAttendance(){
+  const todayStr=today();
+  const todayAttendance=(S.attendance||[]).filter(a=>a.login_date===todayStr);
+  const storeList=[...S.stores].sort((a,b)=>a.id-b.id).map(store=>{
+    const acc=S.accounts.find(a=>a.store_id===store.id&&a.role==='store');
+    const checkin=todayAttendance.find(a=>a.store_id===store.id);
+    return{store,acc,checkin};
+  });
+  const checkedIn=storeList.filter(x=>x.checkin).length;
+  const notIn=storeList.filter(x=>!x.checkin).length;
+  const pct=S.stores.length?Math.round(checkedIn/S.stores.length*100):0;
+  return`<div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:1rem">
+    <div class="met"><div class="met-l">Datum</div><div class="met-v" style="font-size:14px">${new Date().toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'long'})}</div></div>
+    <div class="met"><div class="met-l" style="color:#3B6D11">${t().checkedIn}</div><div class="met-v" style="color:${GREEN}">${checkedIn}</div></div>
+    <div class="met"><div class="met-l" style="color:#A32D2D">${t().notSeen}</div><div class="met-v" style="color:${RED}">${notIn}</div></div>
+    <div class="met"><div class="met-l">Aanwezig %</div><div class="met-v" style="color:${pct>=75?GREEN:pct>=50?AMBER:RED}">${pct}%</div></div>
+  </div>
+  <div class="panel" style="padding:1rem;margin-bottom:1rem">
+    <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:12px">
+      <span style="font-weight:500">${t().attendanceToday}</span>
+      <span style="color:var(--t2)">${checkedIn} / ${S.stores.length} winkels</span>
+    </div>
+    <div style="background:var(--bg3);border-radius:20px;height:10px;overflow:hidden">
+      <div style="height:10px;width:${pct}%;background:${pct>=75?GREEN:pct>=50?AMBER:RED};border-radius:20px;transition:width .5s"></div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="ph"><span class="pht">🕐 ${t().attendanceToday}</span><button class="btn bsm" id="refresh-att-btn">↻ ${t().refresh}</button></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;padding:12px">
+      ${storeList.map(({store,acc,checkin})=>`
+        <div style="background:${checkin?'rgba(99,153,34,0.08)':'rgba(224,75,74,0.06)'};border:0.5px solid ${checkin?'rgba(99,153,34,0.3)':'rgba(224,75,74,0.2)'};border-radius:var(--r1);padding:10px 12px;display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-weight:500;font-size:13px">${store.name}</div>
+            <div style="font-size:11px;color:var(--t2)">${acc?acc.username:'—'}</div>
+            ${checkin?`<div style="font-size:11px;color:${GREEN};margin-top:2px">⏰ ${new Date(checkin.logged_in_at).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'})}</div>`:''}
+          </div>
+          ${checkin?`<span class="badge bok">✓ ${t().checkedIn}</span>`:`<span class="badge bout">✗ ${t().notSeen}</span>`}
+        </div>`).join('')}
+    </div>
+  </div>
+</div>`}
+
+function bComplaints(){
+  const complaints=[...S.complaints||[]].sort((a,b)=>b.id-a.id);
+  const openCount=complaints.filter(c=>c.status==='open').length;
+  return`<div class="panel">
+  <div class="ph">
+    <span class="pht">📋 Klachten (${complaints.length})</span>
+    <div style="display:flex;gap:6px;align-items:center">
+      <span style="font-size:11px;color:var(--t2)">${openCount} open</span>
+      <button class="btn bsm" onclick="showExportModal('allcomplaints',null,'month')">📤 Export</button>
+    </div>
+  </div>
+  <div class="tw"><table>
+    <colgroup><col style="width:88px"><col style="width:130px"><col style="width:90px"><col style="width:140px"><col style="width:170px"><col style="width:75px"><col style="width:180px"></colgroup>
+    <thead><tr><th>Datum</th><th>Winkel</th><th>Type</th><th>Onderwerp</th><th>Omschrijving</th><th>Status</th><th>Acties</th></tr></thead>
+    <tbody>${complaints.length?complaints.map(c=>{
+      const st=S.stores.find(s=>s.id===c.store_id);
+      return`<tr>
+        <td style="color:var(--t2)">${c.created_at?new Date(c.created_at).toLocaleDateString('nl-NL'):''}</td>
+        <td style="font-weight:500">${st?st.name:'—'}</td>
+        <td>${c.type==='website'?'🖥️ Website':c.type==='goods'?'📦 Goederen':'📝 Algemeen'}</td>
+        <td style="font-weight:500">${c.subject}</td>
+        <td style="font-size:11px;color:var(--t2)">${c.description}</td>
+        <td>${c.status==='open'?'<span class="badge bnew">Open</span>':c.status==='in_progress'?`<span class="badge bsent">${t().inProgress}</span>`:'<span class="badge bdone">Opgelost</span>'}</td>
+        <td><div style="display:flex;gap:4px;flex-wrap:wrap">
+          <button class="btn bsm" onclick="bookmarkComplaint(${c.id})" style="color:${c.bookmarked?'#F5C842':'var(--t3)'}">🔖</button>
+          ${c.status==='open'?`<button class="btn bsm cprog" data-id="${c.id}">${t().inProgress}</button>`:''}
+          ${c.status!=='resolved'?`<button class="btn bsm cresolve" data-id="${c.id}" style="color:${GREEN}">Opgelost</button>`:''}
+          <button class="btn bsm cchat" data-id="${c.id}">💬${(S.complaintMsgs||[]).filter(m=>m.complaint_id===c.id&&m.from_account!=='admin'&&!m.is_read).length?` <span style="background:#D4537E;color:#fff;border-radius:10px;padding:0 4px;font-size:10px">${(S.complaintMsgs||[]).filter(m=>m.complaint_id===c.id&&m.from_account!=='admin'&&!m.is_read).length}</span>`:''}</button>
+          <button class="btn bsm" onclick="showExportModal('complaint',${c.id})">📤</button>
+          <button class="btn bd bsm dcomp" data-id="${c.id}">Del</button>
+        </div></td>
+      </tr>`;
+    }).join(''):`<tr><td colspan="7" style="text-align:center;padding:1.5rem;color:var(--t3)">Geen klachten</td></tr>`}
+    </tbody>
+  </table></div>
+</div>`}
+
 function bAccounts(){
   const l=t();
   return`<div class="panel">
