@@ -638,7 +638,7 @@ function buildPortal(){
   <div style="margin-top:1.5rem;border-top:0.5px solid #D0E8F5;padding-top:1rem;display:flex;justify-content:center">
     ${langBar()}
   </div>
-  <div id="pwa-portal-btn" style="margin-top:12px;text-align:center;display:none">
+  <div id="pwa-portal-btn" style="margin-top:12px;text-align:center">
     <button class="btn rijn-btn-outline" id="pwa-portal-install" style="width:100%;justify-content:center;height:38px;font-size:13px;border-radius:8px">📲 Installeer de app</button>
   </div>
 </div></div>`;
@@ -2772,15 +2772,23 @@ document.addEventListener('DOMContentLoaded',()=>{
     // Also show install button in portal
     const portalBtn=document.getElementById('pwa-portal-btn');
     const portalInstall=document.getElementById('pwa-portal-install');
-    if(portalBtn&&window._pwaInstallPrompt&&!isPWAInstalled()){
-      portalBtn.style.display='block';
-    }
-    if(portalInstall){
+      if(portalInstall){
       portalInstall.addEventListener('click',async()=>{
         if(window._pwaInstallPrompt){
+          // Android Chrome - use native prompt
           window._pwaInstallPrompt.prompt();
           const r=await window._pwaInstallPrompt.userChoice;
-          if(r.outcome==='accepted'){window._pwaInstallPrompt=null;if(portalBtn)portalBtn.style.display='none';}
+          if(r.outcome==='accepted'){window._pwaInstallPrompt=null;}
+        } else if(isPWAInstalled()){
+          showToast('✓ App is al geïnstalleerd!');
+        } else {
+          // Show manual instructions
+          const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
+          if(isIOS){
+            alert('iPhone instructies:\n\n1. Tik op het deel-icoon (□↑) onderaan\n2. Scroll naar beneden\n3. Tik op "Zet op beginscherm"\n4. Tik op "Voeg toe"');
+          } else {
+            alert('Android instructies:\n\n1. Tik op de drie puntjes (⋮) rechtsboven in Chrome\n2. Tik op "App installeren" of "Toevoegen aan startscherm"\n3. Tik op "Installeren"');
+          }
         }
       });
     }
