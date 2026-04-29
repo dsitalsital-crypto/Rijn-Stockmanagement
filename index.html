@@ -38,7 +38,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#D4537E;box-sh
 .badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:500}
 .bok{background:#EAF3DE;color:#3B6D11}.blow{background:#FAEEDA;color:#854F0B}.bout{background:#FCEBEB;color:#A32D2D}
 .bnew{background:#EEEDFE;color:#3C3489}.bsent{background:#E1F5EE;color:#085041}.bdone{background:#EAF3DE;color:#27500A}
-.badm{background:#FBEAF0;color:#72243E}.bstr{background:#E6F1FB;color:#0C447C}.bmgr{background:#EEF6E8;color:#2E6B0A}
+.badm{background:#FBEAF0;color:#72243E}.bstr{background:#E6F1FB;color:#0C447C}.bmgr{background:#EEF6E8;color:#2E6B0A}.bdrv{background:#E8F4FD;color:#0C5C8A}
 .met{background:var(--bg2);border-radius:var(--r1);padding:.8rem 1rem}
 .met-l{font-size:11px;color:var(--t2);margin-bottom:3px}.met-v{font-size:20px;font-weight:500}
 .panel{background:var(--bg1);border:0.5px solid var(--b3);border-radius:var(--r2);overflow:hidden;margin-bottom:.9rem}
@@ -324,7 +324,7 @@ const TR={
     noOrders:'Nog geen orders',markSent:'Verzonden',markDone:'Klaar',del:'Del',addStore:'+ Winkel toevoegen',
     city:'Stad',name:'Naam',remove:'Verwijderen',addProduct:'+ Product toevoegen',minStock:'Min. voorraad',
     addAccount:'+ Account toevoegen',dispName:'Weergavenaam',role:'Rol',linkedStore:'Gekoppelde winkel',
-    none:'— geen —',admin:'Admin',storeRole:'Winkel',manager:'Manager',cancel:'Annuleren',save:'Opslaan',add:'Toevoegen',
+    none:'— geen —',admin:'Admin',storeRole:'Winkel',manager:'Manager',driver:'Driver',driver:'Driver',cancel:'Annuleren',save:'Opslaan',add:'Toevoegen',
     submit:'Indienen',updateStock:'Voorraad bijwerken',addOrder:'Nieuwe order',editOrder:'Order bewerken',
     myStock:'Mijn voorraad',myOrders:'Mijn orders',attention:'Aandacht nodig',openReqsS:'Open orders',
     inStock:'Op voorraad',noMyOrders:'Nog geen orders',noProducts:'Geen producten',new:'Nieuw',
@@ -368,7 +368,7 @@ const TR={
     noOrders:'No orders yet',markSent:'Mark sent',markDone:'Mark done',del:'Del',addStore:'+ Add store',
     city:'City',name:'Name',remove:'Remove',addProduct:'+ Add product',minStock:'Min. stock',
     addAccount:'+ Add account',dispName:'Display name',role:'Role',linkedStore:'Linked store',
-    none:'— none —',admin:'Admin',storeRole:'Store',manager:'Manager',cancel:'Cancel',save:'Save',add:'Add',
+    none:'— none —',admin:'Admin',storeRole:'Store',manager:'Manager',driver:'Driver',driver:'Driver',cancel:'Cancel',save:'Save',add:'Add',
     submit:'Submit',updateStock:'Update stock',addOrder:'New order',editOrder:'Edit order',
     myStock:'My stock',myOrders:'My orders',attention:'Needs attention',openReqsS:'Open orders',
     inStock:'In stock',noMyOrders:'No orders yet',noProducts:'No products found',new:'New',
@@ -411,7 +411,7 @@ const TR={
     noOrders:'Henüz sipariş yok',markSent:'Gönderildi',markDone:'Tamamlandı',del:'Sil',addStore:'+ Mağaza ekle',
     city:'Şehir',name:'Ad',remove:'Kaldır',addProduct:'+ Ürün ekle',minStock:'Min. stok',
     addAccount:'+ Hesap ekle',dispName:'Görünen ad',role:'Rol',linkedStore:'Bağlı mağaza',
-    none:'— yok —',admin:'Admin',storeRole:'Mağaza',manager:'Yönetici',cancel:'İptal',save:'Kaydet',add:'Ekle',
+    none:'— yok —',admin:'Admin',storeRole:'Mağaza',manager:'Yönetici',driver:'Sürücü',cancel:'İptal',save:'Kaydet',add:'Ekle',
     submit:'Gönder',updateStock:'Stoku güncelle',addOrder:'Yeni sipariş',editOrder:'Siparişi düzenle',
     myStock:'Stoğum',myOrders:'Siparişlerim',attention:'Dikkat gerekiyor',openReqsS:'Açık siparişler',
     inStock:'Stokta var',noMyOrders:'Henüz sipariş yok',noProducts:'Ürün bulunamadı',new:'Yeni',
@@ -673,7 +673,7 @@ function buildLogin(){const l=t();return`<div class="lcwrap"><div class="lcbox">
 </div></div>`;
 }
 
-function buildApp(){return(S.session.role==='admin'||S.session.role==='manager')?buildAdmin():buildStoreView()}
+function buildApp(){return(S.session.role==='admin'||S.session.role==='manager')?buildAdmin():S.session.role==='driver'?buildDriverView():buildStoreView()}
 
 function buildAdmin(){
   const l=t(),sub=S.adminSubTab,al=allLow()+allOut(),or=openReqs();
@@ -1341,9 +1341,126 @@ function bAccounts(){
     <tbody>${S.accounts.map(a=>`<tr>
       <td style="font-weight:500">${a.username}</td><td>${a.display_name}</td>
       <td style="font-family:monospace;font-size:11px;color:var(--t2)">${a.auth_id?t().accountLinked:a.password}</td>
-      <td>${a.role==='admin'?`<span class="badge badm">${l.admin}</span>`:a.role==='manager'?`<span class="badge bmgr">${t().manager}</span>`:`<span class="badge bstr">${l.storeRole}</span>`}</td>
+      <td>${a.role==='admin'?`<span class="badge badm">${l.admin}</span>`:a.role==='manager'?`<span class="badge bmgr">${t().manager}</span>`:a.role==='driver'?`<span class="badge bdrv">${t().driver}</span>`:`<span class="badge bstr">${l.storeRole}</span>`}</td>
       <td style="display:flex;gap:4px">${`<button class="btn bsm eacc" data-id="${a.id}">${l.edit}</button>`}${a.id!=='admin'?`<button class="btn bd bsm dacc" data-id="${a.id}">${l.remove}</button>`:''}</td>
     </tr>`).join('')}</tbody>
+  </table></div>
+</div>`}
+
+function buildDriverView(){
+  const l=t();
+  const sub=S.driverSubTab||'orders';
+  const todayStr=today();
+  // Only show orders with status 'sent' created today
+  const sentOrders=S.orders.filter(o=>o.status==='sent'&&o.created_at&&o.created_at.slice(0,10)===todayStr);
+  const unreadMsgs=(S.messages||[]).filter(m=>m.from_account!=='driver'&&!m.is_read).length;
+
+  return`<div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.1rem;flex-wrap:wrap;gap:10px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="width:42px;height:42px;background:#E8F4FD;border-radius:var(--r1);display:flex;align-items:center;justify-content:center;font-size:20px">🚚</div>
+      <div>
+        <div style="font-size:17px;font-weight:500">${S.session.display_name||S.session.username} <span class="badge bdrv" style="margin-left:5px;vertical-align:middle">${t().driver}</span></div>
+        <div style="font-size:12px;color:var(--t2)">${sentOrders.length} te bezorgen vandaag</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">${langBar()}<button class="btn bsm" onclick="toggleDarkMode()">${S.darkMode?'☀️':'🌙'}</button><button class="btn bsm" id="refresh-btn">↻</button><button class="btn bsm" id="logout-btn">${l.out}</button></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab ${sub==='orders'?'on':''}" data-drv="orders">📦 ${l.orders}${sentOrders.length?` <span style="background:#3C3489;color:#fff;border-radius:10px;padding:0 5px;font-size:10px;margin-left:3px">${sentOrders.length}</span>`:''}</button>
+    <button class="tab ${sub==='stock'?'on':''}" data-drv="stock">📊 ${l.stockTab}</button>
+    <button class="tab ${sub==='stores'?'on':''}" data-drv="stores">🏪 ${l.stores}</button>
+    <button class="tab ${sub==='export'?'on':''}" data-drv="export">📤 Export</button>
+    <button class="tab ${sub==='complaints'?'on':''}" data-drv="complaints">📋 Klachten</button>
+  </div>
+
+  ${sub==='orders'?bDriverOrders(sentOrders):sub==='stock'?bDriverStock():sub==='stores'?bDriverStores():sub==='export'?bDriverExport():bDriverComplaints()}
+  ${S.modal?buildModal():''}
+</div>`}
+
+function bDriverOrders(sentOrders){
+  const l=t();
+  return`<div class="panel">
+  <div class="ph"><span class="pht">📦 Te bezorgen vandaag — ${today()}</span><span style="font-size:11px;color:var(--t2)">${sentOrders.length} orders</span></div>
+  ${sentOrders.length?sentOrders.map(o=>{
+    const st=S.stores.find(x=>x.id===o.store_id);
+    const items=(S.orderItems||[]).filter(i=>i.order_id===o.id);
+    const itemsHtml=items.map(i=>{const p=S.products.find(x=>x.id===i.product_id);return p?`<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid var(--b3)"><span>${p.name}</span><span style="font-weight:600">×${i.quantity}</span></div>`:''}).filter(Boolean).join('');
+    const num=String(o.order_number||o.id).padStart(4,'0');
+    return`<div style="padding:14px;border-bottom:0.5px solid var(--b3)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div>
+          <span style="font-weight:700;color:#D4537E;font-size:15px">#${num}</span>
+          <span style="font-weight:600;font-size:15px;margin-left:8px">${st?st.name:'—'}</span>
+          ${st?`<div style="font-size:11px;color:var(--t2);margin-top:2px">📍 ${st.city}</div>`:''}
+        </div>
+        <button class="btn bp bsm mdone" data-id="${o.id}" style="color:${GREEN}">✓ Geleverd</button>
+      </div>
+      <div style="background:var(--bg2);border-radius:var(--r1);padding:8px 10px;font-size:12px">${itemsHtml}</div>
+      ${o.note?`<div style="font-size:11px;color:var(--t2);margin-top:6px">📝 ${o.note}</div>`:''}
+    </div>`;
+  }).join(''):`<div style="text-align:center;padding:3rem;color:var(--t3)">
+    <div style="font-size:40px;margin-bottom:12px">✅</div>
+    <div style="font-size:14px">Geen orders te bezorgen vandaag</div>
+  </div>`}
+</div>`}
+
+function bDriverStock(){
+  const maxQ=Math.max(1,...S.products.flatMap(p=>S.stores.map(s=>qty(s.id,p.id))));
+  return`<div class="panel">
+  <div class="ph"><span class="pht">📊 Voorraad overzicht</span></div>
+  <div class="tw"><table>
+    <colgroup><col style="width:160px"><col style="width:70px">${S.stores.slice(0,4).map(()=>'<col style="width:100px">').join('')}<col style="width:70px"></colgroup>
+    <thead><tr><th>Product</th><th>SKU</th>${S.stores.slice(0,4).map(s=>`<th>${s.name}</th>`).join('')}<th>Totaal</th></tr></thead>
+    <tbody>${S.products.map(p=>{
+      const tot=S.stores.reduce((a,s)=>a+qty(s.id,p.id),0);
+      return`<tr>
+        <td style="font-weight:500">${p.name}</td>
+        <td style="color:var(--t2)">${p.sku}</td>
+        ${S.stores.slice(0,4).map(s=>`<td style="font-weight:500;color:${qty(s.id,p.id)===0?RED:qty(s.id,p.id)<p.min_stock?AMBER:'var(--t1)'}">${qty(s.id,p.id)}</td>`).join('')}
+        <td style="font-weight:500">${tot}</td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table></div>
+</div>`}
+
+function bDriverStores(){
+  return`<div class="panel">
+  <div class="ph"><span class="pht">🏪 Winkels</span></div>
+  <div class="tw"><table>
+    <colgroup><col style="width:200px"><col style="width:140px"><col style="width:80px"><col style="width:80px"></colgroup>
+    <thead><tr><th>Naam</th><th>Stad</th><th>Totaal</th><th>Producten</th></tr></thead>
+    <tbody>${[...S.stores].sort((a,b)=>a.id-b.id).map(s=>`<tr style="cursor:pointer" class="store-row" data-sid="${s.id}">
+      <td style="font-weight:500;color:#D4537E">${s.name}</td>
+      <td style="color:var(--t2)">${s.city}</td>
+      <td>${storeTotal(s.id)}</td>
+      <td>${storeItems(s.id)}</td>
+    </tr>`).join('')}</tbody>
+  </table></div>
+</div>`}
+
+function bDriverExport(){
+  const exp=S.exportPage||{type:'orders',format:'excel',period:'day',storeId:'all',status:'sent'};
+  S.exportPage={...exp,status:'sent'};
+  return bExportPage();
+}
+
+function bDriverComplaints(){
+  return`<div class="panel">
+  <div class="ph"><span class="pht">📋 Klachten indienen</span><button class="btn bp bsm" id="add-complaint-btn">+ Klacht indienen</button></div>
+  <div class="tw"><table>
+    <colgroup><col style="width:88px"><col style="width:90px"><col style="width:150px"><col style="width:180px"><col style="width:70px"><col style="width:80px"></colgroup>
+    <thead><tr><th>Datum</th><th>Type</th><th>Onderwerp</th><th>Omschrijving</th><th>Status</th><th>Chat</th></tr></thead>
+    <tbody>${(S.complaints||[]).length?(S.complaints||[]).map(c=>`<tr>
+      <td style="color:var(--t2)">${c.created_at?new Date(c.created_at).toLocaleDateString('nl-NL'):''}</td>
+      <td>${c.type==='website'?'🖥️ Website':c.type==='goods'?'📦 Goederen':'📝 Algemeen'}</td>
+      <td style="font-weight:500">${c.subject}</td>
+      <td style="font-size:11px;color:var(--t2)">${c.description}</td>
+      <td>${c.status==='open'?'<span class="badge bnew">Open</span>':c.status==='in_progress'?'<span class="badge bsent">In behandeling</span>':'<span class="badge bdone">Opgelost</span>'}</td>
+      <td><button class="btn bsm cchat" data-id="${c.id}">💬${(S.complaintMsgs||[]).filter(m=>m.complaint_id===c.id&&m.from_account==='admin'&&!m.is_read).length?` <span style="background:#D4537E;color:#fff;border-radius:10px;padding:0 4px;font-size:10px">${(S.complaintMsgs||[]).filter(m=>m.complaint_id===c.id&&m.from_account==='admin'&&!m.is_read).length}</span>`:''}</button></td>
+    </tr>`).join(''):`<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--t3)">Geen klachten ingediend</td></tr>`}
+    </tbody>
   </table></div>
 </div>`}
 
@@ -1660,7 +1777,7 @@ function buildModal(){
     <div class="fr"><label>${l.user}</label><input type="text" id="m-user"></div>
     <div class="fr"><label>${l.pass}</label><input type="text" id="m-pass"></div>
     <div class="fr"><label>${l.dispName}</label><input type="text" id="m-name"></div>
-    <div class="fr"><label>${l.role}</label><select id="m-role"><option value="store">${l.storeRole}</option><option value="manager">${t().manager}</option><option value="admin">${l.admin}</option></select></div>
+    <div class="fr"><label>${l.role}</label><select id="m-role"><option value="store">${l.storeRole}</option><option value="driver">${t().driver}</option><option value="manager">${t().manager}</option><option value="admin">${l.admin}</option></select></div>
     <div class="fr"><label>${l.linkedStore}</label><select id="m-sl"><option value="">${l.none}</option>${S.stores.map(s=>`<option value="${s.id}">${s.name}</option>`).join('')}</select></div>
     <div class="fa"><button class="btn" id="mc">${l.cancel}</button><button class="btn bp" id="sac">${l.add}</button></div>`;}
 
@@ -2138,6 +2255,7 @@ function bind(){
     }catch(e){}
   });
   document.querySelectorAll('[data-sub]').forEach(el=>el.addEventListener('click',()=>{S.adminSubTab=el.dataset.sub;render()}));
+  document.querySelectorAll('[data-drv]').forEach(el=>el.addEventListener('click',()=>{S.driverSubTab=el.dataset.drv;render()}));
   const sr=g('srch');if(sr)sr.addEventListener('input',e=>{S.search=e.target.value;renderKeepFocus('srch')});
   const psr=g('psrch');if(psr)psr.addEventListener('input',e=>{S.productSearch=e.target.value;renderKeepFocus('psrch')});
   const fs=g('fstore');if(fs)fs.addEventListener('change',e=>{S.filterStore=e.target.value;render()});
