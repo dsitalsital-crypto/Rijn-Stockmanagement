@@ -1011,6 +1011,12 @@ function bWeekPlanner(approvedOrders){
     d.setDate(today.getDate()-day+1+i);
     return d;
   });
+  // Add next Monday as extra option
+  const nextMonday=new Date(today);
+  const dayOfWeek=today.getDay()||7;
+  nextMonday.setDate(today.getDate()-dayOfWeek+8);
+  const allDates=[...weekDates,nextMonday];
+  const allDayLabels=[...days,'Ma (vw)'];
 
   return`<div>
     ${approvedOrders.filter(o=>!o.delivery_date).length?`
@@ -1023,7 +1029,7 @@ function bWeekPlanner(approvedOrders){
           <span><strong style="color:#D4537E">#${num}</strong> ${st?st.name:'—'}</span>
           <select class="plan-date" data-id="${o.id}" style="height:28px;font-size:11px;width:120px">
             <option value="">Kies dag...</option>
-            ${weekDates.map((d,i)=>`<option value="${d.toISOString().slice(0,10)}">${days[i]} ${d.getDate()}/${d.getMonth()+1}</option>`).join('')}
+            ${allDates.map((d,i)=>`<option value="${d.toISOString().slice(0,10)}">${allDayLabels[i]} ${d.getDate()}/${d.getMonth()+1}</option>`).join('')}
           </select>
         </div>`;
       }).join('')}
@@ -1037,9 +1043,15 @@ function bWeekPlanner(approvedOrders){
         ${dayOrders.map(o=>{
           const st=S.stores.find(x=>x.id===o.store_id);
           const num=String(o.order_number||o.id).padStart(4,'0');
-          return`<div style="background:var(--bg2);border-radius:var(--r1);padding:6px 8px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;font-size:12px">
-            <span><strong style="color:#D4537E">#${num}</strong> ${st?st.name:'—'}</span>
-            <button class="btn bp bsm" style="background:#085041;font-size:10px" onclick="sendToDriver(${o.id})">🚚 Stuur</button>
+          return`<div style="background:var(--bg2);border-radius:var(--r1);padding:6px 8px;margin-bottom:4px;font-size:12px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+              <span><strong style="color:#D4537E">#${num}</strong> ${st?st.name:'—'}</span>
+              <button class="btn bp bsm" style="background:#085041;font-size:10px" onclick="sendToDriver(${o.id})">🚚 Stuur</button>
+            </div>
+            <select class="plan-date" data-id="${o.id}" style="height:26px;font-size:10px;width:100%;color:var(--t2)">
+              <option value="">📅 Verander dag...</option>
+              ${weekDates.map((d,j)=>`<option value="${d.toISOString().slice(0,10)}">${days[j]} ${d.getDate()}/${d.getMonth()+1}</option>`).join('')}
+            </select>
           </div>`;
         }).join('')}
       </div>`;
