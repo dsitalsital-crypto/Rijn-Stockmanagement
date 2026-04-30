@@ -941,7 +941,7 @@ function bOrders(){
     <!-- Column 2: Goedgekeurd / Planning -->
     <div class="panel">
       <div class="ph" style="background:rgba(12,92,138,0.08)">
-        <span class="pht">📅 Planning <span style="background:#0C5C8A;color:#fff;border-radius:10px;padding:0 6px;font-size:10px;margin-left:4px">${approvedOrders.length}</span></span>
+        <span class="pht">📅 Planning <span style="background:#0C5C8A;color:#fff;border-radius:10px;padding:0 6px;font-size:10px;margin-left:4px">${approvedOrders.filter(o=>o.delivery_date).length}</span>${approvedOrders.filter(o=>!o.delivery_date).length?`<span style="background:#854F0B;color:#fff;border-radius:10px;padding:0 6px;font-size:10px;margin-left:4px">${approvedOrders.filter(o=>!o.delivery_date).length} ongepland</span>`:''}</span>
       </div>
       <div style="padding:8px">
         ${isAdminOrManager?bWeekPlanner(approvedOrders):`<div style="display:flex;flex-direction:column;gap:6px;max-height:500px;overflow-y:auto">${approvedOrders.length?approvedOrders.map(o=>orderCard(o,'approved',false)).join(''):`<div style="text-align:center;padding:1.5rem;color:var(--t3);font-size:12px">Geen geplande orders</div>`}</div>`}
