@@ -1050,7 +1050,7 @@ function bWeekPlanner(approvedOrders){
             </div>
             <select class="plan-date" data-id="${o.id}" style="height:26px;font-size:10px;width:100%;color:var(--t2)">
               <option value="">📅 Verander dag...</option>
-              ${weekDates.map((d,j)=>`<option value="${d.toISOString().slice(0,10)}">${days[j]} ${d.getDate()}/${d.getMonth()+1}</option>`).join('')}
+              ${allDates.map((d,j)=>`<option value="${d.toISOString().slice(0,10)}">${allDayLabels[j]} ${d.getDate()}/${d.getMonth()+1}</option>`).join('')}
             </select>
           </div>`;
         }).join('')}
