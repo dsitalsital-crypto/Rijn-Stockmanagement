@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<script>
+  // Pass the path to the app via sessionStorage
+  const path = window.location.pathname;
+  const match = path.match(/\/application\/([a-z0-9-]+)\/?$/i);
+  if(match) sessionStorage.setItem('autoHandle', match[1].toLowerCase());
+  window.location.replace('/application/');
+</script>
+</head>
+<body></body>
+</html>
