@@ -57,7 +57,7 @@ tbody tr:hover{background:var(--bg2)}
 .barbg{flex:1;height:5px;background:var(--bg2);border-radius:3px;min-width:35px}
 .barfill{height:5px;border-radius:3px}
 .mover{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:999}
-.mbox{background:var(--bg1);border-radius:var(--r2);border:0.5px solid var(--b3);padding:1.4rem;width:420px;max-width:95vw;max-height:90vh;overflow-y:auto}
+.mbox{background:var(--bg1);border-radius:var(--r2);border:0.5px solid var(--b3);padding:1.4rem;width:min(800px,95vw);max-height:92vh;overflow-y:auto}
 .mbox h3{font-size:15px;font-weight:500;margin-bottom:1rem}
 .fr{margin-bottom:10px}
 .fr label{display:block;font-size:11px;color:var(--t2);margin-bottom:3px}
@@ -1611,6 +1611,7 @@ function buildModal(){
 
   else if(m.type==='add-order'||m.type==='edit-order'){
     const isStore=S.session.role==='store';
+    const isAdminOrManager=S.session.role==='admin'||S.session.role==='manager';
     const isEdit=m.type==='edit-order';
     const o=m.order||null;
     const orderItems=isEdit?(S.orderItems||[]).filter(i=>i.order_id===o.id):[];
@@ -1628,31 +1629,28 @@ function buildModal(){
     
     inner=`<h3>${isEdit?l.editOrder:l.addOrder}</h3>
     ${sf}
-    <div style="display:grid;grid-template-columns:1fr 280px;gap:12px;min-height:400px">
+    <div style="display:grid;grid-template-columns:${isAdminOrManager?'minmax(0,1fr) 280px':'1fr'};gap:16px;min-width:600px">
       <!-- Product selector -->
-      <div style="overflow-y:auto;max-height:450px;padding-right:6px">
+      <div style="overflow-y:auto;max-height:60vh;padding-right:4px">
         ${categories.map(cat=>`
           <div style="margin-bottom:12px">
             <div style="font-size:10px;font-weight:700;color:var(--t3);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;padding-bottom:4px;border-bottom:0.5px solid var(--b3)">${cat}</div>
             ${orderProds.filter(p=>p.category===cat).map(p=>{
               const qty=currentQtys[p.id]||0;
-              return`<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:var(--r1);margin-bottom:4px;background:${qty>0?'rgba(99,153,34,0.08)':'var(--bg2)'};border:0.5px solid ${qty>0?'rgba(99,153,34,0.3)':'var(--b3)'}">
-                <span style="flex:1;font-size:13px;font-weight:${qty>0?'600':'400'};color:${qty>0?GREEN:'var(--t1)'}">
-                  ${qty>0?'✓ ':''} ${p.name}
-                  ${p.name==='PRICE CARDS'?'<span style="font-size:10px;color:var(--t3);margin-left:4px">📋</span>':''}
-                </span>
-                <div style="display:flex;align-items:center;gap:4px">
-                  <button type="button" class="qty-minus" data-pid="${p.id}" style="width:24px;height:24px;border-radius:50%;border:0.5px solid var(--b2);background:var(--bg1);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center">−</button>
-                  <span class="qty-display" data-pid="${p.id}" style="min-width:28px;text-align:center;font-weight:600;font-size:14px">${qty||0}</span>
-                  <button type="button" class="qty-plus" data-pid="${p.id}" style="width:24px;height:24px;border-radius:50%;background:${PINK};color:#fff;border:none;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center">+</button>
+              return`<div style="display:flex;align-items:center;gap:6px;padding:8px 10px;border-radius:var(--r1);margin-bottom:5px;background:${qty>0?'rgba(99,153,34,0.08)':'var(--bg2)'};border:0.5px solid ${qty>0?'rgba(99,153,34,0.3)':'var(--b3)'}">
+                <span style="flex:1;font-size:14px;font-weight:${qty>0?'600':'400'};color:${qty>0?GREEN:'var(--t1)'}">${p.name}${p.name==='PRICE CARDS'?' 📋':''}</span>
+                <div style="display:flex;align-items:center;gap:6px">
+                  <button type="button" class="qty-minus" data-pid="${p.id}" style="width:30px;height:30px;border-radius:50%;border:0.5px solid var(--b2);background:var(--bg1);cursor:pointer;font-size:18px;line-height:1;display:flex;align-items:center;justify-content:center">−</button>
+                  <span style="min-width:32px;text-align:center;font-weight:700;font-size:16px;color:${qty>0?GREEN:'var(--t3)'}">${qty||0}</span>
+                  <button type="button" class="qty-plus" data-pid="${p.id}" style="width:30px;height:30px;border-radius:50%;background:${PINK};color:#fff;border:none;cursor:pointer;font-size:18px;line-height:1;display:flex;align-items:center;justify-content:center">+</button>
                 </div>
               </div>`;
             }).join('')}
           </div>`).join('')}
       </div>
       
-      <!-- Shopping list -->
-      <div style="background:var(--bg2);border-radius:var(--r1);padding:10px;overflow-y:auto;max-height:450px">
+      <!-- Shopping list - only for admin/manager -->
+      ${S.session.role!=='store'?`<div style="background:var(--bg2);border-radius:var(--r1);padding:10px;overflow-y:auto;max-height:60vh">
         <div style="font-size:11px;font-weight:700;color:var(--t2);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">🛒 Boodschappenlijst</div>
         ${orderProds.map(p=>{
           const qty=currentQtys[p.id]||0;
@@ -1664,7 +1662,7 @@ function buildModal(){
         <div style="margin-top:10px;padding-top:8px;border-top:0.5px solid var(--b3);font-size:12px;color:var(--t2)">
           Totaal: <strong style="color:var(--t1)">${Object.values(currentQtys).reduce((a,b)=>a+b,0)} stuks</strong>
         </div>
-      </div>
+      </div>`:''}
     </div>
     
     ${m.showPriceCards?`<div style="margin-top:10px;padding:10px;background:rgba(245,200,66,0.1);border:0.5px solid rgba(245,200,66,0.4);border-radius:var(--r1)">
