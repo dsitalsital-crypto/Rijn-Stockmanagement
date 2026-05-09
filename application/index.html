@@ -2448,8 +2448,17 @@ function bind(){
     // Build orderQtys from existing items using orderable product names
     const orderQtys={};
     items.forEach(item=>{
-      // Match by product_name stored in order_items or by id
-      const op=(S.orderableProducts||[]).find(p=>p.id===item.product_id||p.name===item.product_name);
+      // Match by orderable_product_id first, then by product_name
+      let op=null;
+      if(item.orderable_product_id){
+        op=(S.orderableProducts||[]).find(p=>p.id===item.orderable_product_id);
+      }
+      if(!op&&item.product_name){
+        op=(S.orderableProducts||[]).find(p=>p.name===item.product_name);
+      }
+      if(!op&&item.product_id){
+        op=(S.orderableProducts||[]).find(p=>p.id===item.product_id);
+      }
       if(op)orderQtys[op.id]=item.quantity;
     });
     S.modal={type:'edit-order',order:o,orderQtys};render();
@@ -2588,13 +2597,15 @@ Price Cards: ${priceCardsNote}`:'');
         await api(`order_items?order_id=eq.${oid}`,{method:'DELETE',headers:{}});
         const newItems=[];
         for(const r of rows){const[item]=await api('order_items',{method:'POST',body:JSON.stringify({order_id:oid,...r})});newItems.push(item)}
-        const o=S.orders.find(x=>x.id===oid);if(o){o.store_id=sid;o.note=note;}
+        const o=S.orders.find(x=>x.id===oid);if(o){o.store_id=sid;o.note=fullNote;}
         S.orderItems=(S.orderItems||[]).filter(i=>i.order_id!==oid);S.orderItems.push(...newItems);
         await logOrderHistory(oid,`✏️ Order aangepast door ${S.session.display_name||S.session.username}`);
         showToast('✓ '+t().saved);render();
       }else{
         // Check if there is already an open order for this store
-        const existingOrder=S.orders.find(o=>o.store_id===sid&&o.status==='new');
+        // For stores, use their own store_id; for admin/manager use selected store
+const mergeStoreId=S.session.role==='store'?S.session.store_id:sid;
+const existingOrder=S.orders.find(o=>o.store_id===mergeStoreId&&o.status==='new');
         if(existingOrder){
           // Merge into existing order - add/update products
           const existingItems=(S.orderItems||[]).filter(i=>i.order_id===existingOrder.id);
@@ -2609,9 +2620,9 @@ Price Cards: ${priceCardsNote}`:'');
               if(item)S.orderItems.push(item);
             }
           }
-          // Update note if provided
-          if(note){
-            const combined=existingOrder.note?existingOrder.note+' | '+note:note;
+          // Update note if provided - merge with comma
+          if(fullNote&&fullNote.trim()){
+            const combined=existingOrder.note?existingOrder.note+', '+fullNote:fullNote;
             await api(`orders?id=eq.${existingOrder.id}`,{method:'PATCH',body:JSON.stringify({note:combined})});
             existingOrder.note=combined;
           }
