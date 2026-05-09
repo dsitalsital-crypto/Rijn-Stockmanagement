@@ -3097,13 +3097,20 @@ async function updateOrderStatus(id,status){
       if(status==='done'){
         const items=(S.orderItems||[]).filter(i=>i.order_id===id);
         for(const item of items){
-          const sid=o.store_id,pid=item.product_id,addQty=item.quantity;
+          const sid=o.store_id;
+          const addQty=item.quantity;
+          // Find product_id: use item.product_id if set, otherwise match via products table by name
+          let pid=item.product_id;
+          if(!pid&&item.product_name){
+            const matchedProduct=S.products.find(p=>p.name===item.product_name);
+            if(matchedProduct)pid=matchedProduct.id;
+          }
+          if(!pid)continue; // skip if no matching product found in stock
           const key=sid+'-'+pid,newQty=(S.stock[key]??0)+addQty;
           const ex=await api(`stock?store_id=eq.${sid}&product_id=eq.${pid}`);
           if(ex&&ex.length){await api(`stock?store_id=eq.${sid}&product_id=eq.${pid}`,{method:'PATCH',body:JSON.stringify({quantity:newQty})})}
           else{await api('stock',{method:'POST',body:JSON.stringify({store_id:sid,product_id:pid,quantity:newQty})})}
           S.stock[key]=newQty;
-          // Log stock history for order completion
           api('stock_history',{method:'POST',body:JSON.stringify({store_id:sid,product_id:pid,account_id:S.session?.id,old_quantity:newQty-addQty,new_quantity:newQty})})
             .then(res=>{if(res&&res[0])(S.stockHistory=S.stockHistory||[]).unshift(res[0])}).catch(()=>{});
         }
