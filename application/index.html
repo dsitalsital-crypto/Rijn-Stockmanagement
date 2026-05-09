@@ -623,9 +623,11 @@ function render(){
     html=buildApp();
   }
   g('root').innerHTML=html;
-  // Restore scroll position after render
-  window.scrollTo(scrollX, scrollY);
   bind();if(!S.loading&&S.modal)bindModal();
+  // Restore scroll position after browser paints
+  requestAnimationFrame(()=>{
+    window.scrollTo(scrollX, scrollY);
+  });
   if(S.modal&&(S.modal.type==='chat'||S.modal.type==='complaint-chat')){setTimeout(()=>{const el=g('chat-msgs');if(el)el.scrollTop=el.scrollHeight},50)}
 }
 function renderKeepFocus(focusId){
