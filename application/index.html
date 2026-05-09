@@ -608,7 +608,9 @@ function toggleDarkMode(){
 function render(){
   if(S.session)saveSession(S.session);
   applyTheme();
-  // Show/hide PWA banner based on login state
+  // Save scroll position before render
+  const scrollY=window.scrollY;
+  const scrollX=window.scrollX;
   setTimeout(()=>checkAndShowPWABanner&&checkAndShowPWABanner(),500);
   let html;
   if(S.loading){
@@ -621,6 +623,8 @@ function render(){
     html=buildApp();
   }
   g('root').innerHTML=html;
+  // Restore scroll position after render
+  window.scrollTo(scrollX, scrollY);
   bind();if(!S.loading&&S.modal)bindModal();
   if(S.modal&&(S.modal.type==='chat'||S.modal.type==='complaint-chat')){setTimeout(()=>{const el=g('chat-msgs');if(el)el.scrollTop=el.scrollHeight},50)}
 }
