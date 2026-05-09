@@ -976,7 +976,11 @@ function bOrders(){
 function orderCard(o, col, canEdit){
   const st=S.stores.find(x=>x.id===o.store_id);
   const items=(S.orderItems||[]).filter(i=>i.order_id===o.id);
-  const itemsHtml=items.map(i=>{const p=S.products.find(x=>x.id===i.product_id);return p?`${p.name} ×${i.quantity}`:''}).filter(Boolean).join(', ')||'—';
+  const itemsHtml=items.map(i=>{
+      if(i.product_name)return`${i.product_name} ×${i.quantity}`;
+      const p=S.products.find(x=>x.id===i.product_id);
+      return p?`${p.name} ×${i.quantity}`:'';
+    }).filter(Boolean).join(', ')||'—';
   const num=String(o.order_number||o.id).padStart(4,'0');
   const unread=(S.messages||[]).filter(m=>m.order_id===o.id&&m.from_account!=='admin'&&!m.is_read).length;
   const isBookmarked=o.bookmarked;
@@ -1560,7 +1564,11 @@ function buildStoreView(){
       <thead><tr><th>#</th><th>${l.date}</th><th>${l.status}</th><th>${l.products}</th><th>💬</th></tr></thead>
       <tbody>${myOrders.length?myOrders.map(o=>{
         const items=(S.orderItems||[]).filter(i=>i.order_id===o.id);
-        const itemsHtml=items.map(i=>{const p=S.products.find(x=>x.id===i.product_id);return p?`${p.name} ×${i.quantity}`:''}).filter(Boolean).join(', ')||'—';
+        const itemsHtml=items.map(i=>{
+      if(i.product_name)return`${i.product_name} ×${i.quantity}`;
+      const p=S.products.find(x=>x.id===i.product_id);
+      return p?`${p.name} ×${i.quantity}`:'';
+    }).filter(Boolean).join(', ')||'—';
         const unread=(S.messages||[]).filter(m=>m.order_id===o.id&&m.from_account==='admin'&&!m.is_read).length;
         const orderNum=String(o.order_number||o.id).padStart(4,'0');
         return`<tr>
@@ -1637,13 +1645,13 @@ function buildModal(){
             <div style="font-size:10px;font-weight:700;color:var(--t3);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;padding-bottom:4px;border-bottom:0.5px solid var(--b3)">${cat}</div>
             ${orderProds.filter(p=>p.category===cat).map(p=>{
               const qty=currentQtys[p.id]||0;
-              return`<div style="display:flex;align-items:center;gap:6px;padding:8px 10px;border-radius:var(--r1);margin-bottom:5px;background:${qty>0?'rgba(99,153,34,0.08)':'var(--bg2)'};border:0.5px solid ${qty>0?'rgba(99,153,34,0.3)':'var(--b3)'}">
-                <span style="flex:1;font-size:14px;font-weight:${qty>0?'600':'400'};color:${qty>0?GREEN:'var(--t1)'}">${p.name}${p.name==='PRICE CARDS'?' 📋':''}</span>
-                <div style="display:flex;align-items:center;gap:6px">
-                  <button type="button" class="qty-minus" data-pid="${p.id}" style="width:30px;height:30px;border-radius:50%;border:0.5px solid var(--b2);background:var(--bg1);cursor:pointer;font-size:18px;line-height:1;display:flex;align-items:center;justify-content:center">−</button>
-                  <span style="min-width:32px;text-align:center;font-weight:700;font-size:16px;color:${qty>0?GREEN:'var(--t3)'}">${qty||0}</span>
-                  <button type="button" class="qty-plus" data-pid="${p.id}" style="width:30px;height:30px;border-radius:50%;background:${PINK};color:#fff;border:none;cursor:pointer;font-size:18px;line-height:1;display:flex;align-items:center;justify-content:center">+</button>
-                </div>
+              return`<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--r1);margin-bottom:4px;background:${qty>0?'rgba(99,153,34,0.08)':'var(--bg2)'};border:0.5px solid ${qty>0?'rgba(99,153,34,0.3)':'var(--b3)'};cursor:pointer" onclick="toggleOrderProduct(${p.id})">
+                <span style="flex:1;font-size:13px;font-weight:${qty>0?'600':'400'};color:${qty>0?GREEN:'var(--t1)'}">${p.name}${p.name==='PRICE CARDS'?' 📋':''}</span>
+                ${isAdminOrManager?`<div style="display:flex;align-items:center;gap:4px" onclick="event.stopPropagation()">
+                  <button type="button" class="qty-minus" data-pid="${p.id}" style="width:26px;height:26px;border-radius:50%;border:0.5px solid var(--b2);background:var(--bg1);cursor:pointer;font-size:16px">−</button>
+                  <span style="min-width:28px;text-align:center;font-weight:700;font-size:15px">${qty||0}</span>
+                  <button type="button" class="qty-plus" data-pid="${p.id}" style="width:26px;height:26px;border-radius:50%;background:${PINK};color:#fff;border:none;cursor:pointer;font-size:16px">+</button>
+                </div>`:`<span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;background:${qty>0?'rgba(99,153,34,0.15)':'rgba(0,0,0,0.05)'};color:${qty>0?GREEN:'var(--t3)'}">${qty>0?'✓ Aangevraagd':'+ Aanvragen'}</span>`}
               </div>`;
             }).join('')}
           </div>`).join('')}
@@ -2186,21 +2194,39 @@ async function checkWeeklyReset(){
 async function logWeeklyRequest(orderItems){
   const weekStart=getWeekStart();
   for(const item of orderItems){
-    const p=S.products.find(x=>x.id===item.product_id);
-    if(!p)continue;
-    // Check if entry exists for this product this week
-    const existing=(S.weeklyRequests||[]).find(r=>r.product_id===item.product_id&&r.week_start===weekStart);
+    const productName=item.product_name||(S.products.find(x=>x.id===item.product_id)?.name)||'';
+    const productSku=item.orderable_product_id?'ORD-'+item.orderable_product_id:(S.products.find(x=>x.id===item.product_id)?.sku)||'';
+    const opid=item.orderable_product_id||item.product_id;
+    if(!productName)continue;
+    const existing=(S.weeklyRequests||[]).find(r=>r.product_id===opid&&r.week_start===weekStart);
     try{
       if(existing){
         const newQty=existing.quantity+item.quantity;
         await api(`weekly_product_requests?id=eq.${existing.id}`,{method:'PATCH',body:JSON.stringify({quantity:newQty})});
         existing.quantity=newQty;
       }else{
-        const[nr]=await api('weekly_product_requests',{method:'POST',body:JSON.stringify({product_id:item.product_id,product_name:p.name,product_sku:p.sku,quantity:item.quantity,week_start:weekStart})});
+        const[nr]=await api('weekly_product_requests',{method:'POST',body:JSON.stringify({product_id:opid,product_name:productName,product_sku:productSku,quantity:item.quantity,week_start:weekStart})});
         if(nr)(S.weeklyRequests=S.weeklyRequests||[]).push(nr);
       }
     }catch(e){}
   }
+}
+
+function toggleOrderProduct(pid){
+  if(!S.modal.orderQtys)S.modal.orderQtys={};
+  const current=S.modal.orderQtys[pid]||0;
+  S.modal.orderQtys[pid]=current>0?0:1;
+  const prod=(S.orderableProducts||[]).find(p=>p.id===pid);
+  if(prod&&prod.name==='PRICE CARDS'&&S.modal.orderQtys[pid]>0)S.modal.showPriceCards=true;
+  if(prod&&prod.name==='PRICE CARDS'&&S.modal.orderQtys[pid]===0)S.modal.showPriceCards=false;
+  S.modal._savedNote=document.getElementById('m-note')?document.getElementById('m-note').value:'';
+  S.modal._savedStore=document.getElementById('m-store')?document.getElementById('m-store').value:null;
+  // Save scroll
+  const prodList=document.querySelector('.prod-scroll');
+  const scrollTop=prodList?prodList.scrollTop:0;
+  render();bindModal();
+  const newProdList=document.querySelector('.prod-scroll');
+  if(newProdList)newProdList.scrollTop=scrollTop;
 }
 
 async function lookupCompany(handle){
@@ -2493,9 +2519,15 @@ function bindModal(){
     const priceCardsNote=gv('price-cards-note');
     // Build rows from orderQtys
     const qtys=S.modal.orderQtys||{};
+    const isStoreRole=S.session.role==='store';
     const rows=Object.entries(qtys)
       .filter(([pid,qty])=>qty>0)
-      .map(([pid,qty])=>({product_id:parseInt(pid),quantity:qty,product_name:(S.orderableProducts||[]).find(p=>p.id===parseInt(pid))?.name||''}));
+      .map(([pid,qty])=>({
+        orderable_product_id:parseInt(pid),
+        product_id:null,
+        quantity:isStoreRole?1:qty,
+        product_name:(S.orderableProducts||[]).find(p=>p.id===parseInt(pid))?.name||''
+      }));
     if(!rows.length){showToast('Voeg minimaal 1 product toe','err');return;}
     const fullNote=note+(priceCardsNote?`
 Price Cards: ${priceCardsNote}`:'');
@@ -2519,16 +2551,14 @@ Price Cards: ${priceCardsNote}`:'');
           // Merge into existing order - add/update products
           const existingItems=(S.orderItems||[]).filter(i=>i.order_id===existingOrder.id);
           for(const r of rows){
-            const existing=existingItems.find(i=>i.product_id===r.product_id);
+            const existing=existingItems.find(i=>i.orderable_product_id===r.orderable_product_id&&r.orderable_product_id);
             if(existing){
-              // Add quantity to existing item
               const newQty=existing.quantity+r.quantity;
               await api(`order_items?id=eq.${existing.id}`,{method:'PATCH',body:JSON.stringify({quantity:newQty})});
               existing.quantity=newQty;
             }else{
-              // Add new product to existing order
               const[item]=await api('order_items',{method:'POST',body:JSON.stringify({order_id:existingOrder.id,...r})});
-              S.orderItems.push(item);
+              if(item)S.orderItems.push(item);
             }
           }
           // Update note if provided
@@ -2556,24 +2586,33 @@ Price Cards: ${priceCardsNote}`:'');
     }catch(e){showToast('❌ '+t().errSave,'err')}
   });
 
-  // New product qty +/- handlers
-  document.querySelectorAll('.qty-plus').forEach(el=>el.addEventListener('click',()=>{
-    const pid=parseInt(el.dataset.pid);
+  // New product qty +/- handlers - save scroll position to prevent jumping
+  function updateQty(pid, delta){
     if(!S.modal.orderQtys)S.modal.orderQtys={};
-    S.modal.orderQtys[pid]=(S.modal.orderQtys[pid]||0)+1;
+    S.modal.orderQtys[pid]=Math.max(0,(S.modal.orderQtys[pid]||0)+delta);
     const prod=(S.orderableProducts||[]).find(p=>p.id===pid);
-    if(prod&&prod.name==='PRICE CARDS')S.modal.showPriceCards=true;
+    if(prod&&prod.name==='PRICE CARDS'&&S.modal.orderQtys[pid]>0)S.modal.showPriceCards=true;
     S.modal._savedNote=gv('m-note');
     S.modal._savedStore=g('m-store')?g('m-store').value:null;
+    // Save scroll position of product list
+    const prodList=document.querySelector('.prod-scroll');
+    const scrollTop=prodList?prodList.scrollTop:0;
     render();bindModal();
+    // Restore scroll position
+    const newProdList=document.querySelector('.prod-scroll');
+    if(newProdList)newProdList.scrollTop=scrollTop;
+    // Also prevent modal from scrolling to top
+    const mbox=document.querySelector('.mbox');
+    if(mbox)mbox.scrollTop=0;
+  }
+
+  document.querySelectorAll('.qty-plus').forEach(el=>el.addEventListener('click',e=>{
+    e.stopPropagation();
+    updateQty(parseInt(el.dataset.pid),1);
   }));
-  document.querySelectorAll('.qty-minus').forEach(el=>el.addEventListener('click',()=>{
-    const pid=parseInt(el.dataset.pid);
-    if(!S.modal.orderQtys)S.modal.orderQtys={};
-    S.modal.orderQtys[pid]=Math.max(0,(S.modal.orderQtys[pid]||0)-1);
-    S.modal._savedNote=gv('m-note');
-    S.modal._savedStore=g('m-store')?g('m-store').value:null;
-    render();bindModal();
+  document.querySelectorAll('.qty-minus').forEach(el=>el.addEventListener('click',e=>{
+    e.stopPropagation();
+    updateQty(parseInt(el.dataset.pid),-1);
   }));
 
     // Export modal handlers
