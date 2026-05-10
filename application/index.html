@@ -727,6 +727,10 @@ function render(){
   requestAnimationFrame(()=>{
     window.scrollTo(scrollX, scrollY);
   });
+  // Check delivery notification for stores after every render
+  if(S.session&&S.session.role==='store'){
+    checkDeliveryNotification();
+  }
   if(S.modal&&(S.modal.type==='chat'||S.modal.type==='complaint-chat')){setTimeout(()=>{const el=g('chat-msgs');if(el)el.scrollTop=el.scrollHeight},50)}
 }
 function renderKeepFocus(focusId){
@@ -2699,6 +2703,8 @@ function bind(){
       await api(`orders?id=eq.${oid}`,{method:'PATCH',body:JSON.stringify({delivery_date:date})});
       const o=S.orders.find(x=>x.id===oid);if(o)o.delivery_date=date;
       showToast('✓ Leverdag ingesteld');render();
+      // Check if this triggers a delivery notification for the store
+      if(S.session&&S.session.role==='store')checkDeliveryNotification();
     }catch(e){showToast('❌ '+t().errSave,'err')}
   }));
   document.querySelectorAll('.msent').forEach(el=>el.addEventListener('click',()=>updateOrderStatus(parseInt(el.dataset.id),'sent')));
@@ -3139,6 +3145,16 @@ async function resetStoreStock(storeId){
 }
 
 // Delivery notification for stores
+// Poll every 5 minutes to catch orders planned while store is logged in
+setInterval(()=>{
+  if(S.session&&S.session.role==='store'){
+    api('orders?order=id.desc').then(orders=>{
+      if(orders)S.orders=orders;
+      checkDeliveryNotification();
+    }).catch(()=>{});
+  }
+},5*60*1000);
+
 function checkDeliveryNotification(){
   if(!S.session||S.session.role!=='store')return;
   const storeId=S.session.store_id;
