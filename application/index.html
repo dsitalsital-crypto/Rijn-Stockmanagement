@@ -78,6 +78,8 @@ tbody tr:hover{background:var(--bg2)}
 .chat-msg{padding:7px 11px;border-radius:12px;font-size:12px;max-width:78%;word-break:break-word}
 </style>
 <style id="theme-style"></style>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js"></script>
 <style>
 /* Delivery Notification Overlay */
 #delivery-notif{
@@ -2033,7 +2035,8 @@ async function doLogin(){
       }
       if(acc.role==='admin'){
         setTimeout(()=>{lastOrderCount=S.orders.length;lastMsgCount=(S.messages||[]).filter(m=>m.from_account!=='admin'&&!m.is_read).length;startPolling();requestNotificationPermission();
-        requestPushPermission();},2000);
+        requestPushPermission();
+        setTimeout(initFirebase, 2000);},2000);
       }
     }else{
       S.loginErr=l.loginErr;S.loginUser=u;S.loginPass=p;render();
@@ -2057,7 +2060,8 @@ async function doLogin(){
       }
       if(acc.role==='admin'){
         setTimeout(()=>{lastOrderCount=S.orders.length;lastMsgCount=(S.messages||[]).filter(m=>m.from_account!=='admin'&&!m.is_read).length;startPolling();requestNotificationPermission();
-        requestPushPermission();},2000);
+        requestPushPermission();
+        setTimeout(initFirebase, 2000);},2000);
       }
     }else{
       S.loginErr=l.loginErr;S.loginUser=u;S.loginPass=p;render();
@@ -3559,14 +3563,46 @@ document.addEventListener('DOMContentLoaded',()=>{
   },2000);
 });
 
-// Register Service Worker for PWA
+// Firebase configuration
+const firebaseConfig={
+  apiKey:"AIzaSyBI2teHmn00s6KvrmMWRhOpi3Jfa27K_xo",
+  authDomain:"rijnstockmanagement.firebaseapp.com",
+  projectId:"rijnstockmanagement",
+  storageBucket:"rijnstockmanagement.firebasestorage.app",
+  messagingSenderId:"179354843916",
+  appId:"1:179354843916:web:c6137cca4caa060146e729"
+};
+const VAPID_KEY="BEYL6tKy51ekU6_3NQjCcuGDtGStZ9wggwxnhGcZWTcUKjTdJfrxfmc9CCijd4EOImCzIe5VZTeaGmgsEpakYGY";
+
+async function initFirebase(){
+  try{
+    if(typeof firebase==='undefined')return;
+    if(!firebase.apps.length)firebase.initializeApp(firebaseConfig);
+    const messaging=firebase.messaging();
+    const permission=await Notification.requestPermission();
+    if(permission!=='granted')return;
+    const token=await messaging.getToken({vapidKey:VAPID_KEY});
+    if(token){
+      S.fcmToken=token;
+      if(S.session?.id){
+        await api(`accounts?id=eq.${S.session.id}`,{method:'PATCH',body:JSON.stringify({fcm_token:token})}).catch(()=>{});
+      }
+    }
+    messaging.onMessage((payload)=>{
+      const{title,body}=payload.notification||{};
+      showToast((title||'Rejoes')+(body?' — '+body:''));
+    });
+  }catch(err){console.log('Firebase error:',err);}
+}
+
+// Register Firebase Service Worker
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('./sw.js')
-    .then(reg=>{
-      console.log('SW registered');
-      S.swReg=reg;
-    })
-    .catch(err=>console.log('SW error:', err));
+  navigator.serviceWorker.register('./firebase-messaging-sw.js')
+    .then(reg=>{S.swReg=reg;console.log('Firebase SW registered');})
+    .catch(()=>{
+      navigator.serviceWorker.register('./sw.js')
+        .then(reg=>{S.swReg=reg;}).catch(e=>console.log('SW error:',e));
+    });
 }
 
 // Request push notification permission
@@ -3629,6 +3665,7 @@ setTimeout(()=>{
     startPolling();
     requestNotificationPermission();
         requestPushPermission();
+        setTimeout(initFirebase, 2000);
   }
 },3000);
 </script>
