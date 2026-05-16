@@ -3595,13 +3595,19 @@ async function initFirebase(){
   }catch(err){console.log('Firebase error:',err);}
 }
 
-// Register Firebase Service Worker
+// Register Firebase Service Worker from root scope
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('./firebase-messaging-sw.js')
-    .then(reg=>{S.swReg=reg;console.log('Firebase SW registered');})
-    .catch(()=>{
-      navigator.serviceWorker.register('./sw.js')
-        .then(reg=>{S.swReg=reg;}).catch(e=>console.log('SW error:',e));
+  navigator.serviceWorker.register('/firebase-messaging-sw.js', {scope: '/'})
+    .then(reg=>{
+      S.swReg=reg;
+      console.log('Firebase SW registered, scope:', reg.scope);
+    })
+    .catch(err=>{
+      console.log('Firebase SW error:', err);
+      // Fallback to app-scoped sw
+      navigator.serviceWorker.register('./firebase-messaging-sw.js')
+        .then(reg=>{S.swReg=reg;})
+        .catch(e=>console.log('SW fallback error:',e));
     });
 }
 
