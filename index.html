@@ -1888,6 +1888,18 @@ function buildModal(){
   const l=t(),m=S.modal;let inner='';
   if(!m||!m.type){S.modal=null;return '';}
 
+  if(m.type==='confirm-delete'){
+    inner=`<div style="text-align:center;padding:0.5rem">
+      <div style="font-size:34px;margin-bottom:0.6rem">⚠️</div>
+      <h3 style="margin-bottom:0.5rem">${m.title||'Weet je het zeker?'}</h3>
+      <p style="font-size:13px;color:var(--t2);margin-bottom:1.5rem;line-height:1.5">${m.message||'Deze actie kan niet ongedaan worden gemaakt.'}</p>
+      <div class="fa" style="justify-content:center">
+        <button class="btn" id="mc">${l.cancel}</button>
+        <button class="btn bd" id="confirm-del-btn" style="background:#D14343;color:#fff">${l.remove}</button>
+      </div>
+    </div>`;
+  }
+
   if(m.type==='edit-stock'){inner=`<h3>${l.updateStock}</h3>
     <p style="font-size:12px;color:var(--t2);margin-bottom:.9rem">${m.pName} — ${m.sName}</p>
     ${S.session.role!=='admin'?`<div style="background:#FAEEDA;border:0.5px solid #FAC775;border-radius:var(--r1);padding:8px 10px;font-size:11px;color:#854F0B;margin-bottom:10px">⚠️ Pas de voorraad alleen aan als je stock hebt verbruikt of gecorrigeerd.</div>`:''}
@@ -1938,7 +1950,7 @@ function buildModal(){
     const orderItems=isEdit?(S.orderItems||[]).filter(i=>i.order_id===o.id):[];
     const savedNote=m._savedNote!==undefined?m._savedNote:(isEdit?o.note||'':'');
     const sf=isStore?`<input type="hidden" id="m-store" value="${S.session.store_id}">`
-      :`<div class="fr"><label>${l.store}</label><select id="m-store" onchange="S.modal._savedStore=this.value;S.modal.orderQtys={};S.modal.requestedProductIds=[];S.modal.removedProductIds=[];S.modal._savedNote=document.getElementById('m-note')?.value||'';render();bindModal()">${S.stores.map(s=>`<option value="${s.id}" ${(isEdit?o.store_id:m._savedStore?parseInt(m._savedStore)===s.id:m.storeId)==s.id?'selected':''}>${s.name.includes('Magazijn')?'🏭 ':'🏪 '}${s.name}</option>`).join('')}</select></div>`;
+      :`<div class="fr"><label>${l.store}</label><select id="m-store" onchange="const _sv=this.value;S.modal._savedStore=_sv;S.modal.orderQtys={};S.modal.requestedProductIds=[];S.modal.removedProductIds=[];S.modal._savedNote=document.getElementById('m-note')?.value||'';setTimeout(()=>{render();},50)">${S.stores.map(s=>`<option value="${s.id}" ${s.id===(isEdit?o.store_id:m._savedStore?parseInt(m._savedStore):m.storeId)?'selected':''}>${s.name.includes('Magazijn')?'🏭 ':'🏪 '}${s.name}</option>`).join('')}</select></div>`;
     
     // Determine selected store
     const selectedStoreId=isAdminOrManager
@@ -2961,12 +2973,16 @@ function bind(){
     S.modal={type:'edit-op',op:p};render();
   }));
   // Delete orderable product
-  document.querySelectorAll('.dop').forEach(el=>el.addEventListener('click',async()=>{
-    if(!confirm('Weet je zeker?'))return;
+  document.querySelectorAll('.dop').forEach(el=>el.addEventListener('click',()=>{
     const id=parseInt(el.dataset.id);
-    await api(`orderable_products?id=eq.${id}`,{method:'DELETE',headers:{}});
-    S.orderableProducts=(S.orderableProducts||[]).filter(x=>x.id!==id);
-    showToast('✓ Verwijderd');render();
+    const op=(S.orderableProducts||[]).find(x=>x.id===id);
+    confirmDelete({title:'Bestelbaar product verwijderen?',message:`Weet je zeker dat je "${op?.name||'dit product'}" niet meer bestelbaar wilt maken?`,onConfirm:async()=>{
+      try{
+        await api(`orderable_products?id=eq.${id}`,{method:'DELETE',headers:{}});
+        S.orderableProducts=(S.orderableProducts||[]).filter(x=>x.id!==id);
+        showToast('✓ Verwijderd');render();
+      }catch(e){showToast('❌ Fout bij verwijderen','err');}
+    }});
   }));
   // Add orderable product button
   const aopb=g('add-op-btn');if(aopb)aopb.addEventListener('click',()=>{
@@ -3045,14 +3061,29 @@ function bind(){
   }));
   document.querySelectorAll('.msent').forEach(el=>el.addEventListener('click',()=>updateOrderStatus(parseInt(el.dataset.id),'sent')));
   document.querySelectorAll('.mdone').forEach(el=>el.addEventListener('click',()=>updateOrderStatus(parseInt(el.dataset.id),'done')));
-  document.querySelectorAll('.dorder').forEach(el=>el.addEventListener('click',()=>deleteOrder(parseInt(el.dataset.id))));
-  document.querySelectorAll('.dstore').forEach(el=>el.addEventListener('click',()=>deleteStore(parseInt(el.dataset.id))));
-  document.querySelectorAll('.dprod').forEach(el=>el.addEventListener('click',()=>deleteProduct(parseInt(el.dataset.id))));
+  document.querySelectorAll('.dorder').forEach(el=>el.addEventListener('click',()=>{
+    const oid=parseInt(el.dataset.id);
+    confirmDelete({title:'Order verwijderen?',message:'Weet je zeker dat je deze order wilt verwijderen? Dit kan niet ongedaan worden gemaakt.',onConfirm:()=>deleteOrder(oid)});
+  }));
+  document.querySelectorAll('.dstore').forEach(el=>el.addEventListener('click',()=>{
+    const sid=parseInt(el.dataset.id);
+    const store=S.stores.find(s=>s.id===sid);
+    confirmDelete({title:'Winkel verwijderen?',message:`Weet je zeker dat je "${store?.name||'deze winkel'}" wilt verwijderen? Alle bijbehorende voorraad, orders en accounts gaan verloren.`,onConfirm:()=>deleteStore(sid)});
+  }));
+  document.querySelectorAll('.dprod').forEach(el=>el.addEventListener('click',()=>{
+    const pid=parseInt(el.dataset.id);
+    const prod=S.products.find(p=>p.id===pid);
+    confirmDelete({title:'Product verwijderen?',message:`Weet je zeker dat je "${prod?.name||'dit product'}" wilt verwijderen? Dit verwijdert ook de bijbehorende voorraadgegevens.`,onConfirm:()=>deleteProduct(pid)});
+  }));
   document.querySelectorAll('.eacc').forEach(el=>el.addEventListener('click',()=>{
     const a=S.accounts.find(x=>x.id===el.dataset.id);
     if(a){S.modal={type:'edit-account',a};render();}
   }));
-  document.querySelectorAll('.dacc').forEach(el=>el.addEventListener('click',()=>deleteAccount(el.dataset.id)));
+  document.querySelectorAll('.dacc').forEach(el=>el.addEventListener('click',()=>{
+    const aid=el.dataset.id;
+    const acc=(S.accounts||[]).find(a=>String(a.id)===String(aid));
+    confirmDelete({title:'Account verwijderen?',message:`Weet je zeker dat je het account "${acc?.username||'dit account'}" wilt verwijderen?`,onConfirm:()=>deleteAccount(aid)});
+  }));
   document.querySelectorAll('.eprod').forEach(el=>el.addEventListener('click',()=>{const p=S.products.find(x=>x.id===parseInt(el.dataset.id));if(p){S.modal={type:'edit-product',p};render();}}));
   const aob=g('add-order-btn');if(aob)aob.addEventListener('click',()=>{S.modal={type:'add-order',storeId:S.stores[0]?.id,orderQtys:{}};render()});
   const sob=g('store-order-btn');if(sob)sob.addEventListener('click',()=>{S.modal={type:'add-order',storeId:S.session.store_id,orderQtys:{}};render()});
@@ -3097,6 +3128,11 @@ function bindModal(){
   const mo=g('mo');if(mo)mo.addEventListener('click',e=>{if(e.target===mo){S.modal=null;render()}});
   const mc=g('mc');if(mc)mc.addEventListener('click',()=>{S.modal=null;render()});
   const mx=g('mx');if(mx)mx.addEventListener('click',()=>{S.modal=null;render()});
+  const confirmDelBtn=g('confirm-del-btn');if(confirmDelBtn)confirmDelBtn.addEventListener('click',async()=>{
+    const cb=S.modal?.onConfirm;
+    S.modal=null;render();
+    if(cb)await cb();
+  });
 
   const ss=g('ss');if(ss)ss.addEventListener('click',async()=>{
     const sid=S.modal.storeId,pid=S.modal.productId,nq=parseInt(gv('m-qty'));
@@ -3755,6 +3791,13 @@ async function deleteStore(id){
   try{await api(`stores?id=eq.${id}`,{method:'DELETE',headers:{}});S.stores=S.stores.filter(s=>s.id!==id);S.accounts=S.accounts.filter(a=>a.store_id!==id);render()}
   catch(e){showToast('❌ '+t().errSave,'err')}
 }
+// Reusable delete confirmation modal
+function confirmDelete(opts){
+  // opts: {title, message, onConfirm}
+  S.modal={type:'confirm-delete',title:opts.title,message:opts.message,onConfirm:opts.onConfirm};
+  render();
+}
+
 async function deleteProduct(id){
   try{await api(`products?id=eq.${id}`,{method:'DELETE',headers:{}});S.products=S.products.filter(p=>p.id!==id);render()}
   catch(e){showToast('❌ '+t().errSave,'err')}
